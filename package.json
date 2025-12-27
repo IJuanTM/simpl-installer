@@ -1,0 +1,26 @@
+{
+  "name": "@ijuantm/simpl-install",
+  "version": "1.0.0",
+  "description": "CLI tool to install the Simpl PHP framework.",
+  "main": "install.js",
+  "bin": {
+    "simpl-install": "install.js"
+  },
+  "keywords": [
+    "simpl",
+    "framework",
+    "installer",
+    "cli",
+    "php-framework"
+  ],
+  "author": "Iwan van der Wal",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IJuanTM/simpl"
+  },
+  "homepage": "https://simpl.iwanvanderwal.nl/",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
