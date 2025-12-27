@@ -1,4 +1,4 @@
-# Simpl Framework Installer
+# Simpl Installer
 
 CLI tool for installing the Simpl PHP framework automatically using npx.
 
