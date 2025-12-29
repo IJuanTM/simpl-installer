@@ -4,34 +4,57 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const readline = require('readline');
+const {promisify} = require('util');
+const {exec} = require('child_process');
+
+const execAsync = promisify(exec);
 
 const COLORS = {
   reset: '\x1b[0m', green: '\x1b[32m', yellow: '\x1b[33m', red: '\x1b[31m', cyan: '\x1b[36m', blue: '\x1b[34m', gray: '\x1b[90m', bold: '\x1b[1m', dim: '\x1b[2m'
 };
 
-const BRANCH = 'master';
-const REPO_BASE = 'https://api.github.com/repos/IJuanTM/simpl/contents/src';
-const RAW_BASE = `https://raw.githubusercontent.com/IJuanTM/simpl/${BRANCH}/src`;
+const CDN_BASE = 'https://cdn.simpl.iwanvanderwal.nl/framework';
 
 const log = (message, color = 'reset') => console.log(`${COLORS[color]}${message}${COLORS.reset}`);
 
 const fetchUrl = (url) => new Promise((resolve, reject) => {
-  const headers = {'User-Agent': 'simpl-installer'};
-  if (process.env.GITHUB_TOKEN) headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
-
-  https.get(url, {headers}, res => {
+  https.get(url, res => {
     if (res.statusCode === 302 || res.statusCode === 301) return fetchUrl(res.headers.location).then(resolve).catch(reject);
-    if (res.statusCode === 403) {
-      const resetTime = res.headers['x-ratelimit-reset'];
-      const resetDate = resetTime ? new Date(resetTime * 1000).toLocaleTimeString() : 'unknown';
-      return reject(new Error(`GitHub API rate limit exceeded. Resets at ${resetDate}.`));
-    }
     if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage || 'Request failed'}`));
 
     let data = '';
     res.on('data', chunk => data += chunk);
     res.on('end', () => resolve(data));
   }).on('error', reject);
+});
+
+const downloadFile = (url, dest) => new Promise((resolve, reject) => {
+  const file = fs.createWriteStream(dest);
+
+  https.get(url, res => {
+    if (res.statusCode === 302 || res.statusCode === 301) {
+      fs.unlinkSync(dest);
+      return downloadFile(res.headers.location, dest).then(resolve).catch(reject);
+    }
+    if (res.statusCode !== 200) {
+      fs.unlinkSync(dest);
+      return reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage || 'Request failed'}`));
+    }
+
+    res.pipe(file);
+    file.on('finish', () => {
+      file.close();
+      resolve();
+    });
+  }).on('error', err => {
+    fs.unlinkSync(dest);
+    reject(err);
+  });
+
+  file.on('error', err => {
+    fs.unlinkSync(dest);
+    reject(err);
+  });
 });
 
 const promptUser = (question) => new Promise(resolve => {
@@ -52,14 +75,54 @@ const showHelp = () => {
   log(`  ╰${'─'.repeat(62)}╯`);
   console.log();
   log('  Usage:', 'cyan');
-  log('    npx @ijuantm/simpl-install [project-name]');
+  log('    npx @ijuantm/simpl-install [project-name] [version]');
+  log('    npx @ijuantm/simpl-install --list-versions');
   log('    npx @ijuantm/simpl-install --help');
+  console.log();
+  log('  Arguments:', 'cyan');
+  log('    project-name    Name of the project directory (optional, will prompt)');
+  log('    version         Framework version (default: latest)');
+  console.log();
+  log('  Commands:', 'cyan');
+  log('    --list-versions, -lv    List all available versions');
+  log('    --help, -h              Show this help message');
   console.log();
   log('  Examples:', 'cyan');
   log('    npx @ijuantm/simpl-install my-project');
+  log('    npx @ijuantm/simpl-install my-project 1.5.0');
   log('    npx @ijuantm/simpl-install');
   console.log();
-  log('  If no project name is provided, you will be prompted to enter one.');
+};
+
+const listVersions = async () => {
+  console.log();
+  log(`  ╭${'─'.repeat(62)}╮`);
+  log(`  │  ${COLORS.bold}Available Versions${COLORS.reset}${' '.repeat(42)}│`);
+  log(`  ╰${'─'.repeat(62)}╯`);
+  console.log();
+  log('  📦 Fetching versions from CDN...', 'bold');
+
+  try {
+    const response = await fetchUrl(`${CDN_BASE}/versions.json`);
+    const {versions, latest} = JSON.parse(response);
+
+    console.log();
+
+    if (versions.length === 0) {
+      log(`  ${COLORS.yellow}⚠${COLORS.reset} No versions available`);
+    } else {
+      versions.forEach(version => {
+        if (version === latest) log(`  ${COLORS.cyan}•${COLORS.reset} ${COLORS.bold}${version}${COLORS.reset} ${COLORS.green}(latest)${COLORS.reset}`);
+        else log(`  ${COLORS.cyan}•${COLORS.reset} ${version}`);
+      });
+    }
+  } catch (error) {
+    console.log();
+    log(`  ${COLORS.red}✗${COLORS.reset} Failed to fetch versions: ${error.message}`, 'red');
+    console.log();
+    process.exit(1);
+  }
+
   console.log();
 };
 
@@ -70,33 +133,37 @@ const validateProjectName = (name) => {
   return null;
 };
 
-const downloadFramework = async (projectName) => {
+const countFiles = (dir) => {
+  let count = 0;
+
+  fs.readdirSync(dir, {withFileTypes: true}).forEach(entry => {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) count += countFiles(fullPath); else count++;
+  });
+
+  return count;
+};
+
+const extractZip = async (zipPath, destDir) => {
+  const platform = process.platform;
+
+  if (platform === 'win32') (await execAsync(`powershell -command "Expand-Archive -Path '${zipPath}' -DestinationPath '${destDir}' -Force"`));
+  else (await execAsync(`unzip -q "${zipPath}" -d "${destDir}"`));
+};
+
+const downloadFramework = async (projectName, version) => {
+  const zipUrl = `${CDN_BASE}/${version}/src.zip`;
+  const tempZip = path.join(process.cwd(), 'temp.zip');
   const targetDir = path.join(process.cwd(), projectName);
-  let fileCount = 0;
 
-  const processFiles = async (fileList, basePath = '') => {
-    for (const file of fileList) {
-      const relativePath = path.join(basePath, file.name).replace(/\\/g, '/');
-      const destPath = path.join(targetDir, relativePath);
+  await downloadFile(zipUrl, tempZip);
 
-      if (file.type === 'dir') {
-        const subUrl = file.url.includes('?') ? `${file.url}&ref=${BRANCH}` : `${file.url}?ref=${BRANCH}`;
-        const subFiles = JSON.parse(await fetchUrl(subUrl));
-        await processFiles(subFiles, relativePath);
-      } else {
-        const content = await fetchUrl(`${RAW_BASE}/${relativePath}`);
-        fs.mkdirSync(path.dirname(destPath), {recursive: true});
-        fs.writeFileSync(destPath, content, 'utf8');
-        fileCount++;
-      }
-    }
-  };
+  fs.mkdirSync(targetDir, {recursive: true});
+  await extractZip(tempZip, targetDir);
 
-  const frameworkUrl = `${REPO_BASE}?ref=${BRANCH}`;
-  const files = JSON.parse(await fetchUrl(frameworkUrl));
-  await processFiles(files);
+  fs.unlinkSync(tempZip);
 
-  return fileCount;
+  return countFiles(targetDir);
 };
 
 const main = async () => {
@@ -108,12 +175,18 @@ const main = async () => {
     process.exit(0);
   }
 
-  let projectName = firstArg;
+  if (firstArg === '--list-versions' || firstArg === '-lv') {
+    await listVersions();
+    process.exit(0);
+  }
+
+  let projectName = firstArg && !firstArg.startsWith('-') ? firstArg : null;
+  let version = args[1] || 'latest';
 
   if (!projectName) {
     console.log();
     log(`  ╭${'─'.repeat(62)}╮`);
-    log(`  │  ${COLORS.bold}Simpl Framework Installer${COLORS.reset}${' '.repeat(35)}│`);
+    log(`  │  ${COLORS.bold}Simpl Installer${COLORS.reset}${' '.repeat(45)}│`);
     log(`  ╰${'─'.repeat(62)}╯`);
     console.log();
 
@@ -142,13 +215,13 @@ const main = async () => {
 
   console.log();
   log(`  ╭${'─'.repeat(62)}╮`);
-  log(`  │  ${COLORS.bold}Installing: ${COLORS.cyan}${projectName}${COLORS.reset}${' '.repeat(49 - projectName.length)}│`);
+  log(`  │  ${COLORS.bold}Installing: ${COLORS.cyan}${projectName}${COLORS.reset} ${COLORS.dim}(v${version})${COLORS.reset}${' '.repeat(39 - projectName.length - version.length)}│`);
   log(`  ╰${'─'.repeat(62)}╯`);
   console.log();
-  log('  📦 Downloading framework from GitHub...', 'bold');
+  log('  📦 Downloading files...', 'bold');
 
   try {
-    const fileCount = await downloadFramework(projectName);
+    const fileCount = await downloadFramework(projectName, version);
 
     console.log();
     log(`  ${COLORS.green}✓${COLORS.reset} Downloaded ${COLORS.bold}${fileCount}${COLORS.reset} file${fileCount !== 1 ? 's' : ''}`);
@@ -159,8 +232,6 @@ const main = async () => {
     log(`    ${COLORS.dim}1.${COLORS.reset} cd ${projectName}`);
     log(`    ${COLORS.dim}2.${COLORS.reset} composer install`);
     log(`    ${COLORS.dim}3.${COLORS.reset} npm install`);
-    log(`    ${COLORS.dim}4.${COLORS.reset} Configure your .env file`);
-    log(`    ${COLORS.dim}5.${COLORS.reset} Set up your web server`);
     console.log();
     log(`  ${COLORS.dim}Install add-ons with:${COLORS.reset} ${COLORS.cyan}npx @ijuantm/simpl-addon <name>${COLORS.reset}`);
     console.log();
@@ -169,6 +240,7 @@ const main = async () => {
   } catch (error) {
     console.log();
     log(`  ${COLORS.red}✗${COLORS.reset} Installation failed: ${error.message}`, 'red');
+    log(`  ${COLORS.dim}Make sure version "${version}" exists on the CDN${COLORS.reset}`);
     console.log();
     process.exit(1);
   }
