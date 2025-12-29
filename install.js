@@ -107,9 +107,7 @@ const listVersions = async () => {
 
     console.log();
 
-    if (versions.length === 0) {
-      log(`  ${COLORS.yellow}⚠${COLORS.reset} No versions available`);
-    } else {
+    if (versions.length === 0) log(`  ${COLORS.yellow}⚠${COLORS.reset} No versions available`); else {
       versions.forEach(version => {
         if (version === latest) log(`  ${COLORS.cyan}•${COLORS.reset} ${COLORS.bold}${version}${COLORS.reset} ${COLORS.green}(latest)${COLORS.reset}`); else log(`  ${COLORS.cyan}•${COLORS.reset} ${version}`);
       });
@@ -230,7 +228,7 @@ const main = async () => {
 
   console.log();
   log(`  ╭${'─'.repeat(62)}╮`);
-  log(`  │  ${COLORS.bold}Installing: ${COLORS.cyan}${projectName}${COLORS.reset} ${COLORS.dim}(v${version})${COLORS.reset}${' '.repeat(43 - projectName.length - version.length)}│`);
+  log(`  │  ${COLORS.bold}Installing: ${COLORS.cyan}${projectName}${COLORS.reset} ${COLORS.dim}(v${version})${COLORS.reset}${' '.repeat(44 - projectName.length - version.length)}│`);
   log(`  ╰${'─'.repeat(62)}╯`);
   console.log();
   log('  📦 Downloading files...', 'bold');
@@ -244,12 +242,12 @@ const main = async () => {
     log('  ' + '─'.repeat(16), 'gray');
     console.log();
     log(`  ${COLORS.bold}Getting started:${COLORS.reset}`, 'cyan');
-    log(`    ${COLORS.dim}1.${COLORS.reset} Navigate to the project directory with ${underline(`${COLORS.cyan}cd ${projectName}${COLORS.reset}`)}.`);
-    log(`    ${COLORS.dim}2.${COLORS.reset} Run ${underline(`${COLORS.cyan}composer install && npm install${COLORS.reset}`)} to install dependencies.`);
+    log(`    ${COLORS.dim}1.${COLORS.reset} Navigate to the project directory with ${underline(`${COLORS.bold}cd ${projectName}${COLORS.reset}`)}.`);
+    log(`    ${COLORS.dim}2.${COLORS.reset} Run ${underline(`${COLORS.bold}composer install && npm install${COLORS.reset}`)} to install dependencies.`);
     log(`    ${COLORS.dim}3.${COLORS.reset} Set up a virtual host pointing to the "public" directory.`);
-    log(`    ${COLORS.dim}4.${COLORS.reset} Run ${underline(`${COLORS.cyan}npm run dev${COLORS.reset}`)} to start developing!`);
+    log(`    ${COLORS.dim}4.${COLORS.reset} Run ${underline(`${COLORS.bold}npm run dev${COLORS.reset}`)} to start developing!`);
     console.log();
-    log(`  ${COLORS.dim}Install add-ons with:${COLORS.reset} ${underline(`${COLORS.cyan}npx @ijuantm/simpl-addon <name>${COLORS.reset}`)}`);
+    log(`  ${COLORS.dim}Install add-ons with:${COLORS.reset} ${underline(`${COLORS.bold}npx @ijuantm/simpl-addon <name>${COLORS.reset}`)}`);
     console.log();
     log(`  ${COLORS.green}✓${COLORS.reset} ${COLORS.bold}${COLORS.green}Installation complete!${COLORS.reset}`, 'green');
     console.log();
