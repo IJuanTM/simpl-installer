@@ -73,11 +73,10 @@ const showHelp = () => {
   log(`  ╭${'─'.repeat(62)}╮`);
   log(`  │  ${COLORS.bold}Simpl Installer${COLORS.reset}${' '.repeat(35)}│`);
   log(`  ╰${'─'.repeat(62)}╯`);
-  console.log();
   log('  Usage:', 'cyan');
-  log('    npx @ijuantm/simpl-install [project-name] [version]');
-  log('    npx @ijuantm/simpl-install --list-versions');
-  log('    npx @ijuantm/simpl-install --help');
+  log(`    ${makeClickable('npx @ijuantm/simpl-install [project-name] [version]', 'npx @ijuantm/simpl-install')}`);
+  log(`    ${makeClickable('npx @ijuantm/simpl-install --list-versions', 'npx @ijuantm/simpl-install --list-versions')}`);
+  log(`    ${makeClickable('npx @ijuantm/simpl-install --help', 'npx @ijuantm/simpl-install --help')}`);
   console.log();
   log('  Arguments:', 'cyan');
   log('    project-name    Name of the project directory (optional, will prompt)');
@@ -88,9 +87,9 @@ const showHelp = () => {
   log('    --help, -h              Show this help message');
   console.log();
   log('  Examples:', 'cyan');
-  log('    npx @ijuantm/simpl-install my-project');
-  log('    npx @ijuantm/simpl-install my-project 1.5.0');
-  log('    npx @ijuantm/simpl-install');
+  log(`    ${makeClickable('npx @ijuantm/simpl-install my-project', 'npx @ijuantm/simpl-install my-project')}`);
+  log(`    ${makeClickable('npx @ijuantm/simpl-install my-project 1.5.0', 'npx @ijuantm/simpl-install my-project 1.5.0')}`);
+  log(`    ${makeClickable('npx @ijuantm/simpl-install', 'npx @ijuantm/simpl-install')}`);
   console.log();
 };
 
@@ -144,10 +143,26 @@ const countFiles = (dir) => {
 };
 
 const extractZip = async (zipPath, destDir) => {
-  const platform = process.platform;
+  const tempExtract = path.join(process.cwd(), '__temp_extract__');
 
-  if (platform === 'win32') (await execAsync(`powershell -command "Expand-Archive -Path '${zipPath}' -DestinationPath '${destDir}' -Force"`)); else (await execAsync(`unzip -q "${zipPath}" -d "${destDir}"`));
+  if (process.platform === 'win32') {
+    await execAsync(`powershell -command "Expand-Archive -Path '${zipPath}' -DestinationPath '${tempExtract}' -Force"`);
+  } else {
+    await execAsync(`unzip -q "${zipPath}" -d "${tempExtract}"`);
+  }
+
+  const entries = fs.readdirSync(tempExtract, {withFileTypes: true});
+  const sourceDir = entries.length === 1 && entries[0].isDirectory() ? path.join(tempExtract, entries[0].name) : tempExtract;
+
+  fs.mkdirSync(destDir, {recursive: true});
+
+  fs.readdirSync(sourceDir, {withFileTypes: true}).forEach(item => {
+    fs.renameSync(path.join(sourceDir, item.name), path.join(destDir, item.name));
+  });
+
+  fs.rmSync(tempExtract, {recursive: true, force: true});
 };
+
 
 const downloadFramework = async (projectName, version) => {
   const zipUrl = `${CDN_BASE}/${version}/src.zip`;
@@ -163,6 +178,8 @@ const downloadFramework = async (projectName, version) => {
 
   return countFiles(targetDir);
 };
+
+const makeClickable = (text, command) => `\x1b]8;;file:///${command}\x07${text}\x1b]8;;\x07`;
 
 const main = async () => {
   const args = process.argv.slice(2);
@@ -213,7 +230,7 @@ const main = async () => {
 
   console.log();
   log(`  ╭${'─'.repeat(62)}╮`);
-  log(`  │  ${COLORS.bold}Installing: ${COLORS.cyan}${projectName}${COLORS.reset} ${COLORS.dim}(v${version})${COLORS.reset}${' '.repeat(39 - projectName.length - version.length)}│`);
+  log(`  │  ${COLORS.bold}Installing: ${COLORS.cyan}${projectName}${COLORS.reset} ${COLORS.dim}(v${version})${COLORS.reset}${' '.repeat(35 - projectName.length - version.length)}│`);
   log(`  ╰${'─'.repeat(62)}╯`);
   console.log();
   log('  📦 Downloading files...', 'bold');
@@ -227,12 +244,12 @@ const main = async () => {
     log('  ' + '─'.repeat(16), 'gray');
     console.log();
     log(`  ${COLORS.bold}Getting started:${COLORS.reset}`, 'cyan');
-    log(`    ${COLORS.dim}1.${COLORS.reset} Navigate to the project directory with ${COLORS.cyan}cd ${projectName}${COLORS.reset}.`);
-    log(`    ${COLORS.dim}2.${COLORS.reset} Run ${COLORS.cyan}composer install && npm install${COLORS.reset} to install dependencies.`);
+    log(`    ${COLORS.dim}1.${COLORS.reset} Navigate to the project directory with ${makeClickable(`${COLORS.cyan}cd ${projectName}${COLORS.reset}`, `cd ${projectName}`)}.`);
+    log(`    ${COLORS.dim}2.${COLORS.reset} Run ${makeClickable(`${COLORS.cyan}composer install && npm install${COLORS.reset}`, 'composer install && npm install')} to install dependencies.`);
     log(`    ${COLORS.dim}3.${COLORS.reset} Set up a virtual host pointing to the "public" directory.`);
-    log(`    ${COLORS.dim}4.${COLORS.reset} Run ${COLORS.cyan}npm run dev${COLORS.reset} to start developing!`);
+    log(`    ${COLORS.dim}4.${COLORS.reset} Run ${makeClickable(`${COLORS.cyan}npm run dev${COLORS.reset}`, 'npm run dev')} to start developing!`);
     console.log();
-    log(`  ${COLORS.dim}Install add-ons with:${COLORS.reset} ${COLORS.cyan}npx @ijuantm/simpl-addon <name>${COLORS.reset}`);
+    log(`  ${COLORS.dim}Install add-ons with:${COLORS.reset} ${makeClickable(`${COLORS.cyan}npx @ijuantm/simpl-addon <name>${COLORS.reset}`, 'npx @ijuantm/simpl-addon')}`);
     console.log();
     log(`  ${COLORS.green}✓${COLORS.reset} ${COLORS.bold}${COLORS.green}Installation complete!${COLORS.reset}`, 'green');
     console.log();
