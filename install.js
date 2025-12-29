@@ -10,8 +10,7 @@ const {exec} = require('child_process');
 const execAsync = promisify(exec);
 
 const COLORS = {
-  reset: '\x1b[0m', green: '\x1b[32m', yellow: '\x1b[33m', red: '\x1b[31m',
-  cyan: '\x1b[36m', blue: '\x1b[34m', gray: '\x1b[90m', bold: '\x1b[1m', dim: '\x1b[2m'
+  reset: '\x1b[0m', green: '\x1b[32m', yellow: '\x1b[33m', red: '\x1b[31m', cyan: '\x1b[36m', blue: '\x1b[34m', gray: '\x1b[90m', bold: '\x1b[1m', dim: '\x1b[2m'
 };
 
 const CDN_BASE = 'https://cdn.simpl.iwanvanderwal.nl/framework';
@@ -60,8 +59,7 @@ const downloadFile = (url, dest) => new Promise((resolve, reject) => {
 
 const promptUser = (question) => new Promise(resolve => {
   const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
+    input: process.stdin, output: process.stdout
   });
 
   rl.question(question, answer => {
@@ -76,23 +74,23 @@ const showHelp = () => {
   log(`  │  ${COLORS.bold}Simpl Installer${COLORS.reset}${' '.repeat(45)}│`);
   log(`  ╰${'─'.repeat(62)}╯`);
   console.log();
-  log('  Usage:', 'blue');
-  log(`    ${COLORS.bold}npx @ijuantm/simpl-install [project-name] [version]${COLORS.reset}`);
-  log(`    ${COLORS.bold}npx @ijuantm/simpl-install --list-versions${COLORS.reset}`);
-  log(`    ${COLORS.bold}npx @ijuantm/simpl-install --help${COLORS.reset}`);
+  log(`  ${COLORS.bold}Usage:${COLORS.reset}`, 'blue');
+  log(`    ${COLORS.dim}npx @ijuantm/simpl-install [project-name] [version]${COLORS.reset}`);
+  log(`    ${COLORS.dim}npx @ijuantm/simpl-install --list-versions${COLORS.reset}`);
+  log(`    ${COLORS.dim}npx @ijuantm/simpl-install --help${COLORS.reset}`);
   console.log();
-  log('  Arguments:', 'blue');
-  log('    project-name    Name of the project directory (optional, will prompt)');
-  log('    version         Simpl version (default: latest)');
+  log(`  ${COLORS.bold}Arguments:${COLORS.reset}`, 'blue');
+  log(`    ${COLORS.dim}project-name${COLORS.reset}    Name of the project directory (optional, will prompt)`);
+  log(`    ${COLORS.dim}version${COLORS.reset}         Simpl version (default: latest)`);
   console.log();
-  log('  Commands:', 'blue');
-  log('    --list-versions, -lv    List all available versions');
-  log('    --help, -h              Show this help message');
+  log(`  ${COLORS.bold}Commands:${COLORS.reset}`, 'blue');
+  log(`    ${COLORS.dim}--list-versions, -lv${COLORS.reset}    List all available versions`);
+  log(`    ${COLORS.dim}--help, -h${COLORS.reset}              Show this help message`);
   console.log();
-  log('  Examples:', 'blue');
-  log(`    ${COLORS.bold}npx @ijuantm/simpl-install my-project${COLORS.reset}`);
-  log(`    ${COLORS.bold}npx @ijuantm/simpl-install my-project 1.5.0${COLORS.reset}`);
-  log(`    ${COLORS.bold}npx @ijuantm/simpl-install${COLORS.reset}`);
+  log(`  ${COLORS.bold}Examples:${COLORS.reset}`, 'blue');
+  log(`    ${COLORS.dim}npx @ijuantm/simpl-install my-project${COLORS.reset}`);
+  log(`    ${COLORS.dim}npx @ijuantm/simpl-install my-project 1.5.0${COLORS.reset}`);
+  log(`    ${COLORS.dim}npx @ijuantm/simpl-install${COLORS.reset}`);
   console.log();
 };
 
@@ -110,10 +108,8 @@ const listVersions = async () => {
 
     console.log();
 
-    if (versions.length === 0) log(`  ${COLORS.yellow}⚠${COLORS.reset} No versions available`);
-    else versions.forEach(version => {
-      if (version === latest) log(`  ${COLORS.cyan}•${COLORS.reset} ${COLORS.bold}${version}${COLORS.reset} ${COLORS.green}(latest)${COLORS.reset}`);
-      else log(`  ${COLORS.cyan}•${COLORS.reset} ${version}`);
+    if (versions.length === 0) log(`  ${COLORS.yellow}⚠${COLORS.reset} No versions available`); else versions.forEach(version => {
+      if (version === latest) log(`  ${COLORS.cyan}•${COLORS.reset} ${COLORS.bold}${version}${COLORS.reset} ${COLORS.green}(latest)${COLORS.reset}`); else log(`  ${COLORS.cyan}•${COLORS.reset} ${version}`);
     });
   } catch (error) {
     console.log();
@@ -137,8 +133,7 @@ const countFiles = (dir) => {
 
   fs.readdirSync(dir, {withFileTypes: true}).forEach(entry => {
     const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) count += countFiles(fullPath);
-    else count++;
+    if (entry.isDirectory()) count += countFiles(fullPath); else count++;
   });
 
   return count;
@@ -243,12 +238,14 @@ const main = async () => {
     log('  ' + '─'.repeat(16), 'gray');
     console.log();
     log(`  ${COLORS.bold}Getting started:${COLORS.reset}`, 'blue');
-    log(`    ${COLORS.dim}1.${COLORS.reset} Navigate to the project directory with ${COLORS.bold}cd ${projectName}${COLORS.reset}`);
-    log(`    ${COLORS.dim}2.${COLORS.reset} Install dependencies with ${COLORS.bold}composer install && npm install${COLORS.reset}`);
-    log(`    ${COLORS.dim}3.${COLORS.reset} Set up a virtual host pointing to the ${COLORS.bold}public${COLORS.reset} directory`);
-    log(`    ${COLORS.dim}4.${COLORS.reset} Start developing with ${COLORS.bold}npm run dev${COLORS.reset}`);
+    log(`    ${COLORS.dim}1.${COLORS.reset} Navigate to the project directory with ${COLORS.dim}cd ${projectName}${COLORS.reset}`);
+    log(`    ${COLORS.dim}2.${COLORS.reset} Install dependencies with ${COLORS.dim}composer install && npm install${COLORS.reset}`);
+    log(`    ${COLORS.dim}3.${COLORS.reset} Set up a virtual host pointing to the ${COLORS.dim}public${COLORS.reset} directory`);
+    log(`    ${COLORS.dim}4.${COLORS.reset} Start developing with ${COLORS.dim}npm run dev${COLORS.reset}`);
     console.log();
-    log(`  ${COLORS.dim}Install add-ons:${COLORS.reset} ${COLORS.bold}npx @ijuantm/simpl-addon <name>${COLORS.reset}`);
+    log(`  ${COLORS.bold}Install add-ons:${COLORS.reset}`, 'blue');
+    log(`    ${COLORS.dim}npx @ijuantm/simpl-addon <name>${COLORS.reset}`);
+    log(`    ${COLORS.dim}npx @ijuantm/simpl-addon --list, -lv${COLORS.reset}    List available add-ons`);
     console.log();
     log(`  ${COLORS.green}✓${COLORS.reset} ${COLORS.bold}${COLORS.green}Installation complete!${COLORS.reset}`, 'green');
     console.log();
