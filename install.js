@@ -108,13 +108,16 @@ const listVersions = async () => {
 
     console.log();
 
-    if (versions.length === 0) log(`  ${COLORS.yellow}⚠${COLORS.reset} No versions available`); else versions.forEach(version => {
-      if (version === latest) log(`  ${COLORS.cyan}•${COLORS.reset} ${COLORS.bold}${version}${COLORS.reset} ${COLORS.green}(latest)${COLORS.reset}`); else log(`  ${COLORS.cyan}•${COLORS.reset} ${version}`);
+    if (versions.length === 0) log(`  ${COLORS.yellow}⚠${COLORS.reset} No versions available`);
+    else versions.forEach(version => {
+      if (version === latest) log(`  ${COLORS.cyan}•${COLORS.reset} ${COLORS.bold}${version}${COLORS.reset} ${COLORS.green}(latest)${COLORS.reset}`);
+      else log(`  ${COLORS.cyan}•${COLORS.reset} ${COLORS.dim}${version}${COLORS.reset}`);
     });
   } catch (error) {
     console.log();
     log(`  ${COLORS.red}✗${COLORS.reset} Failed to fetch versions: ${error.message}`, 'red');
     console.log();
+
     process.exit(1);
   }
 
@@ -133,7 +136,9 @@ const countFiles = (dir) => {
 
   fs.readdirSync(dir, {withFileTypes: true}).forEach(entry => {
     const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) count += countFiles(fullPath); else count++;
+
+    if (entry.isDirectory()) count += countFiles(fullPath);
+    else count++;
   });
 
   return count;
@@ -152,11 +157,7 @@ const extractZip = async (zipPath, destDir) => {
   const sourceDir = entries.length === 1 && entries[0].isDirectory() ? path.join(tempExtract, entries[0].name) : tempExtract;
 
   fs.mkdirSync(destDir, {recursive: true});
-
-  fs.readdirSync(sourceDir, {withFileTypes: true}).forEach(item => {
-    fs.renameSync(path.join(sourceDir, item.name), path.join(destDir, item.name));
-  });
-
+  fs.readdirSync(sourceDir, {withFileTypes: true}).forEach(item => fs.renameSync(path.join(sourceDir, item.name), path.join(destDir, item.name)));
   fs.rmSync(tempExtract, {recursive: true, force: true});
 };
 
@@ -168,6 +169,7 @@ const downloadFramework = async (projectName, version) => {
   await downloadFile(zipUrl, tempZip);
 
   fs.mkdirSync(targetDir, {recursive: true});
+
   await extractZip(tempZip, targetDir);
 
   fs.unlinkSync(tempZip);
@@ -181,11 +183,13 @@ const main = async () => {
 
   if (firstArg === '--help' || firstArg === '-h') {
     showHelp();
+
     process.exit(0);
   }
 
   if (firstArg === '--list-versions' || firstArg === '-lv') {
     await listVersions();
+
     process.exit(0);
   }
 
@@ -201,6 +205,7 @@ const main = async () => {
 
     while (true) {
       projectName = await promptUser('  Project name: ');
+
       const error = validateProjectName(projectName);
 
       if (error) {
@@ -218,6 +223,7 @@ const main = async () => {
       console.log();
       log(`  ${COLORS.red}✗${COLORS.reset} ${error}`, 'red');
       console.log();
+
       process.exit(1);
     }
   }
@@ -254,11 +260,13 @@ const main = async () => {
     log(`  ${COLORS.red}✗${COLORS.reset} Installation failed: ${error.message}`, 'red');
     log(`  ${COLORS.dim}Make sure version "${version}" exists on the CDN${COLORS.reset}`);
     console.log();
+
     process.exit(1);
   }
 };
 
 main().catch(err => {
   log(`\n  ${COLORS.red}✗${COLORS.reset} Fatal error: ${err.message}\n`, 'red');
+
   process.exit(1);
 });

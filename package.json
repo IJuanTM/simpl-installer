@@ -1,6 +1,6 @@
 {
   "name": "@ijuantm/simpl-install",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "CLI tool to install the Simpl PHP framework.",
   "main": "install.js",
   "bin": {
