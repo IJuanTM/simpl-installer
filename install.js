@@ -74,9 +74,9 @@ const showHelp = () => {
   log(`  │  ${COLORS.bold}Simpl Installer${COLORS.reset}${' '.repeat(35)}│`);
   log(`  ╰${'─'.repeat(62)}╯`);
   log('  Usage:', 'cyan');
-  log(`    ${makeClickable('npx @ijuantm/simpl-install [project-name] [version]', 'npx @ijuantm/simpl-install')}`);
-  log(`    ${makeClickable('npx @ijuantm/simpl-install --list-versions', 'npx @ijuantm/simpl-install --list-versions')}`);
-  log(`    ${makeClickable('npx @ijuantm/simpl-install --help', 'npx @ijuantm/simpl-install --help')}`);
+  log(`    ${underline('npx @ijuantm/simpl-install [project-name] [version]')}`);
+  log(`    ${underline('npx @ijuantm/simpl-install --list-versions')}`);
+  log(`    ${underline('npx @ijuantm/simpl-install --help')}`);
   console.log();
   log('  Arguments:', 'cyan');
   log('    project-name    Name of the project directory (optional, will prompt)');
@@ -87,9 +87,9 @@ const showHelp = () => {
   log('    --help, -h              Show this help message');
   console.log();
   log('  Examples:', 'cyan');
-  log(`    ${makeClickable('npx @ijuantm/simpl-install my-project', 'npx @ijuantm/simpl-install my-project')}`);
-  log(`    ${makeClickable('npx @ijuantm/simpl-install my-project 1.5.0', 'npx @ijuantm/simpl-install my-project 1.5.0')}`);
-  log(`    ${makeClickable('npx @ijuantm/simpl-install', 'npx @ijuantm/simpl-install')}`);
+  log(`    ${underline('npx @ijuantm/simpl-install my-project')}`);
+  log(`    ${underline('npx @ijuantm/simpl-install my-project 1.5.0')}`);
+  log(`    ${underline('npx @ijuantm/simpl-install')}`);
   console.log();
 };
 
@@ -179,7 +179,7 @@ const downloadFramework = async (projectName, version) => {
   return countFiles(targetDir);
 };
 
-const makeClickable = (text, command) => `\x1b]8;;file:///${command}\x07${text}\x1b]8;;\x07`;
+const underline = (text) => `\x1b[4m${text}\x1b[24m`;
 
 const main = async () => {
   const args = process.argv.slice(2);
@@ -244,12 +244,12 @@ const main = async () => {
     log('  ' + '─'.repeat(16), 'gray');
     console.log();
     log(`  ${COLORS.bold}Getting started:${COLORS.reset}`, 'cyan');
-    log(`    ${COLORS.dim}1.${COLORS.reset} Navigate to the project directory with ${makeClickable(`${COLORS.cyan}cd ${projectName}${COLORS.reset}`, `cd ${projectName}`)}.`);
-    log(`    ${COLORS.dim}2.${COLORS.reset} Run ${makeClickable(`${COLORS.cyan}composer install && npm install${COLORS.reset}`, 'composer install && npm install')} to install dependencies.`);
+    log(`    ${COLORS.dim}1.${COLORS.reset} Navigate to the project directory with ${underline(`${COLORS.cyan}cd ${projectName}${COLORS.reset}`)}.`);
+    log(`    ${COLORS.dim}2.${COLORS.reset} Run ${underline(`${COLORS.cyan}composer install && npm install${COLORS.reset}`)} to install dependencies.`);
     log(`    ${COLORS.dim}3.${COLORS.reset} Set up a virtual host pointing to the "public" directory.`);
-    log(`    ${COLORS.dim}4.${COLORS.reset} Run ${makeClickable(`${COLORS.cyan}npm run dev${COLORS.reset}`, 'npm run dev')} to start developing!`);
+    log(`    ${COLORS.dim}4.${COLORS.reset} Run ${underline(`${COLORS.cyan}npm run dev${COLORS.reset}`)} to start developing!`);
     console.log();
-    log(`  ${COLORS.dim}Install add-ons with:${COLORS.reset} ${makeClickable(`${COLORS.cyan}npx @ijuantm/simpl-addon <name>${COLORS.reset}`, 'npx @ijuantm/simpl-addon')}`);
+    log(`  ${COLORS.dim}Install add-ons with:${COLORS.reset} ${underline(`${COLORS.cyan}npx @ijuantm/simpl-addon <name>${COLORS.reset}`)}`);
     console.log();
     log(`  ${COLORS.green}✓${COLORS.reset} ${COLORS.bold}${COLORS.green}Installation complete!${COLORS.reset}`, 'green');
     console.log();
