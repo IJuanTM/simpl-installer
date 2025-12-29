@@ -71,25 +71,26 @@ const promptUser = (question) => new Promise(resolve => {
 const showHelp = () => {
   console.log();
   log(`  ╭${'─'.repeat(62)}╮`);
-  log(`  │  ${COLORS.bold}Simpl Installer${COLORS.reset}${' '.repeat(35)}│`);
+  log(`  │  ${COLORS.bold}Simpl Installer${COLORS.reset}${' '.repeat(45)}│`);
   log(`  ╰${'─'.repeat(62)}╯`);
-  log('  Usage:', 'cyan');
-  log(`    ${underline('npx @ijuantm/simpl-install [project-name] [version]')}`);
-  log(`    ${underline('npx @ijuantm/simpl-install --list-versions')}`);
-  log(`    ${underline('npx @ijuantm/simpl-install --help')}`);
   console.log();
-  log('  Arguments:', 'cyan');
+  log('  Usage:', 'blue');
+  log(`    ${COLORS.bold}npx @ijuantm/simpl-install [project-name] [version]${COLORS.reset}`);
+  log(`    ${COLORS.bold}npx @ijuantm/simpl-install --list-versions${COLORS.reset}`);
+  log(`    ${COLORS.bold}npx @ijuantm/simpl-install --help${COLORS.reset}`);
+  console.log();
+  log('  Arguments:', 'blue');
   log('    project-name    Name of the project directory (optional, will prompt)');
   log('    version         Simpl version (default: latest)');
   console.log();
-  log('  Commands:', 'cyan');
+  log('  Commands:', 'blue');
   log('    --list-versions, -lv    List all available versions');
   log('    --help, -h              Show this help message');
   console.log();
-  log('  Examples:', 'cyan');
-  log(`    ${underline('npx @ijuantm/simpl-install my-project')}`);
-  log(`    ${underline('npx @ijuantm/simpl-install my-project 1.5.0')}`);
-  log(`    ${underline('npx @ijuantm/simpl-install')}`);
+  log('  Examples:', 'blue');
+  log(`    ${COLORS.bold}npx @ijuantm/simpl-install my-project${COLORS.reset}`);
+  log(`    ${COLORS.bold}npx @ijuantm/simpl-install my-project 1.5.0${COLORS.reset}`);
+  log(`    ${COLORS.bold}npx @ijuantm/simpl-install${COLORS.reset}`);
   console.log();
 };
 
@@ -107,7 +108,9 @@ const listVersions = async () => {
 
     console.log();
 
-    if (versions.length === 0) log(`  ${COLORS.yellow}⚠${COLORS.reset} No versions available`); else {
+    if (versions.length === 0) {
+      log(`  ${COLORS.yellow}⚠${COLORS.reset} No versions available`);
+    } else {
       versions.forEach(version => {
         if (version === latest) log(`  ${COLORS.cyan}•${COLORS.reset} ${COLORS.bold}${version}${COLORS.reset} ${COLORS.green}(latest)${COLORS.reset}`); else log(`  ${COLORS.cyan}•${COLORS.reset} ${version}`);
       });
@@ -161,7 +164,6 @@ const extractZip = async (zipPath, destDir) => {
   fs.rmSync(tempExtract, {recursive: true, force: true});
 };
 
-
 const downloadFramework = async (projectName, version) => {
   const zipUrl = `${CDN_BASE}/${version}/src.zip`;
   const tempZip = path.join(process.cwd(), 'temp.zip');
@@ -176,8 +178,6 @@ const downloadFramework = async (projectName, version) => {
 
   return countFiles(targetDir);
 };
-
-const underline = (text) => `\x1b[4m${text}\x1b[24m`;
 
 const main = async () => {
   const args = process.argv.slice(2);
@@ -242,12 +242,12 @@ const main = async () => {
     log('  ' + '─'.repeat(16), 'gray');
     console.log();
     log(`  ${COLORS.bold}Getting started:${COLORS.reset}`, 'cyan');
-    log(`    ${COLORS.dim}1.${COLORS.reset} Navigate to the project directory with ${underline(`${COLORS.bold}cd ${projectName}${COLORS.reset}`)}.`);
-    log(`    ${COLORS.dim}2.${COLORS.reset} Run ${underline(`${COLORS.bold}composer install && npm install${COLORS.reset}`)} to install dependencies.`);
+    log(`    ${COLORS.dim}1.${COLORS.reset} Navigate to the project directory with ${COLORS.cyan}cd ${projectName}${COLORS.reset}.`);
+    log(`    ${COLORS.dim}2.${COLORS.reset} Run ${COLORS.cyan}composer install && npm install${COLORS.reset} to install dependencies.`);
     log(`    ${COLORS.dim}3.${COLORS.reset} Set up a virtual host pointing to the "public" directory.`);
-    log(`    ${COLORS.dim}4.${COLORS.reset} Run ${underline(`${COLORS.bold}npm run dev${COLORS.reset}`)} to start developing!`);
+    log(`    ${COLORS.dim}4.${COLORS.reset} Run ${COLORS.cyan}npm run dev${COLORS.reset} to start developing!`);
     console.log();
-    log(`  ${COLORS.dim}Install add-ons with:${COLORS.reset} ${underline(`${COLORS.bold}npx @ijuantm/simpl-addon <name>${COLORS.reset}`)}`);
+    log(`  ${COLORS.dim}Install add-ons with:${COLORS.reset} ${COLORS.cyan}npx @ijuantm/simpl-addon <name>${COLORS.reset}`);
     console.log();
     log(`  ${COLORS.green}✓${COLORS.reset} ${COLORS.bold}${COLORS.green}Installation complete!${COLORS.reset}`, 'green');
     console.log();
