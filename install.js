@@ -71,7 +71,7 @@ const promptUser = (question) => new Promise(resolve => {
 const showHelp = () => {
   console.log();
   log(`  ╭${'─'.repeat(62)}╮`);
-  log(`  │  ${COLORS.bold}Simpl Framework Installer${COLORS.reset}${' '.repeat(35)}│`);
+  log(`  │  ${COLORS.bold}Simpl Installer${COLORS.reset}${' '.repeat(35)}│`);
   log(`  ╰${'─'.repeat(62)}╯`);
   console.log();
   log('  Usage:', 'cyan');
@@ -81,7 +81,7 @@ const showHelp = () => {
   console.log();
   log('  Arguments:', 'cyan');
   log('    project-name    Name of the project directory (optional, will prompt)');
-  log('    version         Framework version (default: latest)');
+  log('    version         Simpl version (default: latest)');
   console.log();
   log('  Commands:', 'cyan');
   log('    --list-versions, -lv    List all available versions');
@@ -100,7 +100,7 @@ const listVersions = async () => {
   log(`  │  ${COLORS.bold}Available Versions${COLORS.reset}${' '.repeat(42)}│`);
   log(`  ╰${'─'.repeat(62)}╯`);
   console.log();
-  log('  📦 Fetching versions from CDN...', 'bold');
+  log('  📦 Fetching available versions...', 'bold');
 
   try {
     const response = await fetchUrl(`${CDN_BASE}/versions.json`);
@@ -112,8 +112,7 @@ const listVersions = async () => {
       log(`  ${COLORS.yellow}⚠${COLORS.reset} No versions available`);
     } else {
       versions.forEach(version => {
-        if (version === latest) log(`  ${COLORS.cyan}•${COLORS.reset} ${COLORS.bold}${version}${COLORS.reset} ${COLORS.green}(latest)${COLORS.reset}`);
-        else log(`  ${COLORS.cyan}•${COLORS.reset} ${version}`);
+        if (version === latest) log(`  ${COLORS.cyan}•${COLORS.reset} ${COLORS.bold}${version}${COLORS.reset} ${COLORS.green}(latest)${COLORS.reset}`); else log(`  ${COLORS.cyan}•${COLORS.reset} ${version}`);
       });
     }
   } catch (error) {
@@ -147,8 +146,7 @@ const countFiles = (dir) => {
 const extractZip = async (zipPath, destDir) => {
   const platform = process.platform;
 
-  if (platform === 'win32') (await execAsync(`powershell -command "Expand-Archive -Path '${zipPath}' -DestinationPath '${destDir}' -Force"`));
-  else (await execAsync(`unzip -q "${zipPath}" -d "${destDir}"`));
+  if (platform === 'win32') (await execAsync(`powershell -command "Expand-Archive -Path '${zipPath}' -DestinationPath '${destDir}' -Force"`)); else (await execAsync(`unzip -q "${zipPath}" -d "${destDir}"`));
 };
 
 const downloadFramework = async (projectName, version) => {
@@ -228,10 +226,11 @@ const main = async () => {
     console.log();
     log('  ' + '─'.repeat(16), 'gray');
     console.log();
-    log(`  ${COLORS.bold}Next steps:${COLORS.reset}`, 'cyan');
-    log(`    ${COLORS.dim}1.${COLORS.reset} cd ${projectName}`);
-    log(`    ${COLORS.dim}2.${COLORS.reset} composer install`);
-    log(`    ${COLORS.dim}3.${COLORS.reset} npm install`);
+    log(`  ${COLORS.bold}Getting started:${COLORS.reset}`, 'cyan');
+    log(`    ${COLORS.dim}1.${COLORS.reset} Navigate to the project directory with ${COLORS.cyan}cd ${projectName}${COLORS.reset}.`);
+    log(`    ${COLORS.dim}2.${COLORS.reset} Run ${COLORS.cyan}composer install && npm install${COLORS.reset} to install dependencies.`);
+    log(`    ${COLORS.dim}3.${COLORS.reset} Set up a virtual host pointing to the "public" directory.`);
+    log(`    ${COLORS.dim}4.${COLORS.reset} Run ${COLORS.cyan}npm run dev${COLORS.reset} to start developing!`);
     console.log();
     log(`  ${COLORS.dim}Install add-ons with:${COLORS.reset} ${COLORS.cyan}npx @ijuantm/simpl-addon <name>${COLORS.reset}`);
     console.log();
