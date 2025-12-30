@@ -230,7 +230,7 @@ const main = async () => {
 
   console.log();
   log(`  ╭${'─'.repeat(62)}╮`);
-  log(`  │  ${COLORS.bold}Installing: ${COLORS.cyan}${projectName}${COLORS.reset} ${COLORS.dim}(v${version})${COLORS.reset}${' '.repeat(44 - projectName.length - version.length)}│`);
+  log(`  │  ${COLORS.bold}Installing: ${COLORS.cyan}${projectName}${COLORS.reset} ${COLORS.dim}(${version})${COLORS.reset}${' '.repeat(44 - projectName.length - version.length)}│`);
   log(`  ╰${'─'.repeat(62)}╯`);
   console.log();
   log('  📦 Downloading files...', 'bold');
