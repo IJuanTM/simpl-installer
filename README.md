@@ -9,13 +9,13 @@ CLI tool for installing the Simpl PHP framework automatically using npx.
 Create a new Simpl project by running the following command, change `my-project` to your desired project name:
 
 ```bash
-npx @simpl/install my-project
+npx @ijuantm/simpl-install my-project
 ```
 
 Or run without a project name to be prompted for one:
 
 ```bash
-npx @simpl/install
+npx @ijuantm/simpl-install
 ```
 
 The installer will:
@@ -27,7 +27,7 @@ The installer will:
 ### Get Help
 
 ```bash
-npx @simpl/install --help
+npx @ijuantm/simpl-install --help
 ```
 
 ## Post-Installation Steps
@@ -46,13 +46,13 @@ For more details, see the README file in the project directory, or in the [docum
 Once your framework is installed, you can add functionality with add-ons, for example, to install the "auth" add-on:
 
 ```bash
-npx @simpl/addon auth
+npx @ijuantm/simpl-addon auth
 ```
 
 See available add-ons:
 
 ```bash
-npx @simpl/addon --list
+npx @ijuantm/simpl-addon --list
 ```
 
 ## Requirements

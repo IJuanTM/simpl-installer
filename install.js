@@ -75,9 +75,9 @@ const showHelp = () => {
   log(`  ╰${'─'.repeat(62)}╯`);
   console.log();
   log(`  ${COLORS.bold}Usage:${COLORS.reset}`, 'blue');
-  log(`    ${COLORS.dim}npx @simpl/install [project-name] [version]${COLORS.reset}`);
-  log(`    ${COLORS.dim}npx @simpl/install --list-versions${COLORS.reset}`);
-  log(`    ${COLORS.dim}npx @simpl/install --help${COLORS.reset}`);
+  log(`    ${COLORS.dim}npx @ijuantm/simpl-install [project-name] [version]${COLORS.reset}`);
+  log(`    ${COLORS.dim}npx @ijuantm/simpl-install --list-versions${COLORS.reset}`);
+  log(`    ${COLORS.dim}npx @ijuantm/simpl-install --help${COLORS.reset}`);
   console.log();
   log(`  ${COLORS.bold}Arguments:${COLORS.reset}`, 'blue');
   log(`    ${COLORS.dim}project-name${COLORS.reset}    Name of the project directory (optional, will prompt)`);
@@ -88,9 +88,9 @@ const showHelp = () => {
   log(`    ${COLORS.dim}--help, -h${COLORS.reset}              Show this help message`);
   console.log();
   log(`  ${COLORS.bold}Examples:${COLORS.reset}`, 'blue');
-  log(`    ${COLORS.dim}npx @simpl/install my-project${COLORS.reset}`);
-  log(`    ${COLORS.dim}npx @simpl/install my-project 1.5.0${COLORS.reset}`);
-  log(`    ${COLORS.dim}npx @simpl/install${COLORS.reset}`);
+  log(`    ${COLORS.dim}npx @ijuantm/simpl-install my-project${COLORS.reset}`);
+  log(`    ${COLORS.dim}npx @ijuantm/simpl-install my-project 1.5.0${COLORS.reset}`);
+  log(`    ${COLORS.dim}npx @ijuantm/simpl-install${COLORS.reset}`);
   console.log();
 };
 
@@ -250,8 +250,8 @@ const main = async () => {
     log(`    ${COLORS.dim}4.${COLORS.reset} Start developing with ${COLORS.dim}npm run dev${COLORS.reset}`);
     console.log();
     log(`  ${COLORS.bold}Install add-ons:${COLORS.reset}`, 'blue');
-    log(`    ${COLORS.dim}npx @simpl/addon <name>${COLORS.reset}`);
-    log(`    ${COLORS.dim}npx @simpl/addon --list, -lv${COLORS.reset}    List available add-ons`);
+    log(`    ${COLORS.dim}npx @ijuantm/simpl-addon <name>${COLORS.reset}`);
+    log(`    ${COLORS.dim}npx @ijuantm/simpl-addon --list, -lv${COLORS.reset}    List available add-ons`);
     console.log();
     log(`  ${COLORS.green}✓${COLORS.reset} ${COLORS.bold}${COLORS.green}Installation complete!${COLORS.reset}`, 'green');
     console.log();
