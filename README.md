@@ -57,6 +57,6 @@ npx @ijuantm/simpl-addon --list
 
 ## Requirements
 
-- **Node.js**: >= 20.x.x
-- **PHP**: >= 8.4.x
+- **Node.js**: >= 22.x.x
+- **PHP**: >= 8.5.x
 - **Composer**: Latest version

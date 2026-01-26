@@ -14,6 +14,7 @@ const COLORS = {
 };
 
 const CDN_BASE = 'https://cdn.simpl.iwanvanderwal.nl/framework';
+const LOCAL_RELEASES_DIR = process.env.SIMPL_LOCAL_RELEASES || path.join(process.cwd(), 'releases');
 
 const log = (message, color = 'reset') => console.log(`${COLORS[color]}${message}${COLORS.reset}`);
 
@@ -58,10 +59,7 @@ const downloadFile = (url, dest) => new Promise((resolve, reject) => {
 });
 
 const promptUser = (question) => new Promise(resolve => {
-  const rl = readline.createInterface({
-    input: process.stdin, output: process.stdout
-  });
-
+  const rl = readline.createInterface({input: process.stdin, output: process.stdout});
   rl.question(question, answer => {
     rl.close();
     resolve(answer.trim());
@@ -103,21 +101,21 @@ const listVersions = async () => {
   log('  📦 Fetching available versions...', 'bold');
 
   try {
-    const response = await fetchUrl(`${CDN_BASE}/versions.json`);
-    const {versions, latest} = JSON.parse(response);
-
+    const {versions, latest} = JSON.parse(await fetchUrl(`${CDN_BASE}/versions.json`));
     console.log();
 
-    if (versions.length === 0) log(`  ${COLORS.yellow}⚠${COLORS.reset} No versions available`);
-    else versions.forEach(version => {
-      if (version === latest) log(`  ${COLORS.cyan}•${COLORS.reset} ${COLORS.bold}${version}${COLORS.reset} ${COLORS.green}(latest)${COLORS.reset}`);
-      else log(`  ${COLORS.cyan}•${COLORS.reset} ${COLORS.dim}${version}${COLORS.reset}`);
-    });
+    if (versions.length === 0) {
+      log(`  ${COLORS.yellow}⚠${COLORS.reset} No versions available`);
+    } else {
+      versions.forEach(v => {
+        if (v === latest) log(`  ${COLORS.cyan}•${COLORS.reset} ${COLORS.bold}${v}${COLORS.reset} ${COLORS.green}(latest)${COLORS.reset}`);
+        else log(`  ${COLORS.cyan}•${COLORS.reset} ${COLORS.dim}${v}${COLORS.reset}`);
+      });
+    }
   } catch (error) {
     console.log();
-    log(`  ${COLORS.red}✗${COLORS.reset} Failed to fetch versions: ${error.message}`, 'red');
+    log(`  ${COLORS.red}✗${COLORS.reset} Failed to fetch versions`, 'red');
     console.log();
-
     process.exit(1);
   }
 
@@ -133,45 +131,56 @@ const validateProjectName = (name) => {
 
 const countFiles = (dir) => {
   let count = 0;
-
   fs.readdirSync(dir, {withFileTypes: true}).forEach(entry => {
-    const fullPath = path.join(dir, entry.name);
-
-    if (entry.isDirectory()) count += countFiles(fullPath);
+    if (entry.isDirectory()) count += countFiles(path.join(dir, entry.name));
     else count++;
   });
-
   return count;
 };
 
 const extractZip = async (zipPath, destDir) => {
-  const tempExtract = path.join(process.cwd(), '__temp_extract__');
-
-  if (process.platform === 'win32') {
-    await execAsync(`powershell -command "Expand-Archive -Path '${zipPath}' -DestinationPath '${tempExtract}' -Force"`);
-  } else {
-    await execAsync(`unzip -q "${zipPath}" -d "${tempExtract}"`);
-  }
-
-  const entries = fs.readdirSync(tempExtract, {withFileTypes: true});
-  const sourceDir = entries.length === 1 && entries[0].isDirectory() ? path.join(tempExtract, entries[0].name) : tempExtract;
-
   fs.mkdirSync(destDir, {recursive: true});
-  fs.readdirSync(sourceDir, {withFileTypes: true}).forEach(item => fs.renameSync(path.join(sourceDir, item.name), path.join(destDir, item.name)));
-  fs.rmSync(tempExtract, {recursive: true, force: true});
+
+  if (process.platform === 'win32') await execAsync(`powershell -command "Expand-Archive -Path '${zipPath}' -DestinationPath '${destDir}' -Force"`);
+  else await execAsync(`unzip -q "${zipPath}" -d "${destDir}"`);
+
+  const entries = fs.readdirSync(destDir, {withFileTypes: true});
+
+  if (entries.length === 1 && entries[0].isDirectory()) {
+    const nestedDir = path.join(destDir, entries[0].name);
+    fs.readdirSync(nestedDir).forEach(item => fs.renameSync(path.join(nestedDir, item), path.join(destDir, item)));
+    fs.rmdirSync(nestedDir);
+  }
 };
 
+const checkServerAvailability = () => new Promise(resolve => {
+  const req = https.get(`${CDN_BASE}/versions.json`, {timeout: 5000}, res => {
+    res.resume();
+    resolve(res.statusCode === 200);
+  });
+  req.on('error', () => resolve(false));
+  req.on('timeout', () => {
+    req.destroy();
+    resolve(false);
+  });
+});
+
 const downloadFramework = async (projectName, version) => {
-  const zipUrl = `${CDN_BASE}/${version}/src.zip`;
-  const tempZip = path.join(process.cwd(), 'temp.zip');
   const targetDir = path.join(process.cwd(), projectName);
+  const localZipPath = path.join(LOCAL_RELEASES_DIR, version, 'src.zip');
 
-  await downloadFile(zipUrl, tempZip);
+  if (fs.existsSync(localZipPath)) {
+    console.log();
+    log(`  💻 Using local release files`, 'bold');
+    await extractZip(localZipPath, targetDir);
+    return countFiles(targetDir);
+  }
 
-  fs.mkdirSync(targetDir, {recursive: true});
+  if (!await checkServerAvailability()) throw new Error('CDN server is currently unreachable');
 
+  const tempZip = path.join(process.cwd(), 'temp.zip');
+  await downloadFile(`${CDN_BASE}/${version}/src.zip`, tempZip);
   await extractZip(tempZip, targetDir);
-
   fs.unlinkSync(tempZip);
 
   return countFiles(targetDir);
@@ -183,18 +192,16 @@ const main = async () => {
 
   if (firstArg === '--help' || firstArg === '-h') {
     showHelp();
-
     process.exit(0);
   }
 
   if (firstArg === '--list-versions' || firstArg === '-lv') {
     await listVersions();
-
     process.exit(0);
   }
 
   let projectName = firstArg && !firstArg.startsWith('-') ? firstArg : null;
-  let version = args[1] || 'latest';
+  const version = args[1] || 'latest';
 
   if (!projectName) {
     console.log();
@@ -205,25 +212,20 @@ const main = async () => {
 
     while (true) {
       projectName = await promptUser('  Project name: ');
-
       const error = validateProjectName(projectName);
-
       if (error) {
         log(`  ${COLORS.red}✗${COLORS.reset} ${error}`, 'red');
         console.log();
         continue;
       }
-
       break;
     }
   } else {
     const error = validateProjectName(projectName);
-
     if (error) {
       console.log();
       log(`  ${COLORS.red}✗${COLORS.reset} ${error}`, 'red');
       console.log();
-
       process.exit(1);
     }
   }
@@ -257,16 +259,15 @@ const main = async () => {
     console.log();
   } catch (error) {
     console.log();
-    log(`  ${COLORS.red}✗${COLORS.reset} Installation failed: ${error.message}`, 'red');
-    log(`  ${COLORS.dim}Make sure version "${version}" exists on the CDN${COLORS.reset}`);
+    log(`  ${COLORS.red}✗${COLORS.reset} Installation failed`, 'red');
+    if (error.message === 'CDN server is currently unreachable') log(`  ${COLORS.dim}The CDN server is currently unavailable. Please try again later.${COLORS.reset}`);
+    else log(`  ${COLORS.dim}Please verify the version exists or try again later${COLORS.reset}`);
     console.log();
-
     process.exit(1);
   }
 };
 
-main().catch(err => {
-  log(`\n  ${COLORS.red}✗${COLORS.reset} Fatal error: ${err.message}\n`, 'red');
-
+main().catch(() => {
+  log(`\n  ${COLORS.red}✗${COLORS.reset} Fatal error occurred\n`, 'red');
   process.exit(1);
 });
