@@ -14,7 +14,7 @@ const COLORS = {
 };
 
 const CDN_BASE = 'https://cdn.simpl.iwanvanderwal.nl/framework';
-const LOCAL_RELEASES_DIR = process.env.SIMPL_LOCAL_RELEASES || path.join(process.cwd(), 'releases');
+const LOCAL_RELEASES_DIR = process.env.SIMPL_LOCAL_RELEASES || path.join(process.cwd(), 'local-releases');
 
 const log = (message, color = 'reset') => console.log(`${COLORS[color]}${message}${COLORS.reset}`);
 
