@@ -58,11 +58,13 @@ const downloadFile = (url, dest) => new Promise((resolve, reject) => {
   });
 });
 
-const promptUser = (question) => new Promise(resolve => {
+const promptUser = (question, defaultValue = '') => new Promise(resolve => {
   const rl = readline.createInterface({input: process.stdin, output: process.stdout});
-  rl.question(question, answer => {
+  const prompt = defaultValue ? `${question} ${COLORS.dim}(${defaultValue})${COLORS.reset}: ` : `${question}: `;
+
+  rl.question(prompt, answer => {
     rl.close();
-    resolve(answer.trim());
+    resolve(answer.trim() || defaultValue);
   });
 });
 
@@ -73,21 +75,15 @@ const showHelp = () => {
   log(`  ╰${'─'.repeat(62)}╯`);
   console.log();
   log(`  ${COLORS.bold}Usage:${COLORS.reset}`, 'blue');
-  log(`    ${COLORS.dim}npx @ijuantm/simpl-install [project-name] [version]${COLORS.reset}`);
+  log(`    ${COLORS.dim}npx @ijuantm/simpl-install${COLORS.reset}`);
   log(`    ${COLORS.dim}npx @ijuantm/simpl-install --list-versions${COLORS.reset}`);
   log(`    ${COLORS.dim}npx @ijuantm/simpl-install --help${COLORS.reset}`);
-  console.log();
-  log(`  ${COLORS.bold}Arguments:${COLORS.reset}`, 'blue');
-  log(`    ${COLORS.dim}project-name${COLORS.reset}    Name of the project directory (optional, will prompt)`);
-  log(`    ${COLORS.dim}version${COLORS.reset}         Simpl version (default: latest)`);
   console.log();
   log(`  ${COLORS.bold}Commands:${COLORS.reset}`, 'blue');
   log(`    ${COLORS.dim}--list-versions, -lv${COLORS.reset}    List all available versions`);
   log(`    ${COLORS.dim}--help, -h${COLORS.reset}              Show this help message`);
   console.log();
   log(`  ${COLORS.bold}Examples:${COLORS.reset}`, 'blue');
-  log(`    ${COLORS.dim}npx @ijuantm/simpl-install my-project${COLORS.reset}`);
-  log(`    ${COLORS.dim}npx @ijuantm/simpl-install my-project 1.5.0${COLORS.reset}`);
   log(`    ${COLORS.dim}npx @ijuantm/simpl-install${COLORS.reset}`);
   console.log();
 };
@@ -129,6 +125,13 @@ const validateProjectName = (name) => {
   return null;
 };
 
+const validateUrl = (url) => {
+  if (!url || url.length === 0) return 'URL cannot be empty';
+  const trimmed = url.trim().replace(/\/+$/, '');
+  if (!/^https?:\/\/.+/.test(trimmed)) return 'URL must start with http:// or https://';
+  return trimmed;
+};
+
 const countFiles = (dir) => {
   let count = 0;
   fs.readdirSync(dir, {withFileTypes: true}).forEach(entry => {
@@ -136,6 +139,19 @@ const countFiles = (dir) => {
     else count++;
   });
   return count;
+};
+
+const replaceInFile = (filePath, search, replace) => {
+  const content = fs.readFileSync(filePath, 'utf8');
+  if (content.includes(search)) fs.writeFileSync(filePath, content.split(search).join(replace), 'utf8');
+};
+
+const replaceUrlInDirectory = (dir, appUrl) => {
+  fs.readdirSync(dir, {withFileTypes: true}).forEach(entry => {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) replaceUrlInDirectory(fullPath, appUrl);
+    else if (entry.isFile()) replaceInFile(fullPath, '@app-url', appUrl);
+  });
 };
 
 const extractZip = async (zipPath, destDir) => {
@@ -165,11 +181,12 @@ const checkServerAvailability = () => new Promise(resolve => {
   });
 });
 
-const downloadFramework = async (projectName, version) => {
+const downloadFramework = async (projectName, version, forceLocal) => {
   const targetDir = path.join(process.cwd(), projectName);
   const localZipPath = path.join(LOCAL_RELEASES_DIR, version, 'src.zip');
 
-  if (fs.existsSync(localZipPath)) {
+  if (forceLocal || fs.existsSync(localZipPath)) {
+    if (!fs.existsSync(localZipPath)) throw new Error(`Local release not found: ${localZipPath}`);
     console.log();
     log(`  💻 Using local release files`, 'bold');
     await extractZip(localZipPath, targetDir);
@@ -186,6 +203,14 @@ const downloadFramework = async (projectName, version) => {
   return countFiles(targetDir);
 };
 
+const getAvailableVersions = async () => {
+  try {
+    return JSON.parse(await fetchUrl(`${CDN_BASE}/versions.json`));
+  } catch {
+    return {versions: [], latest: 'latest'};
+  }
+};
+
 const main = async () => {
   const args = process.argv.slice(2);
   const firstArg = args[0];
@@ -200,34 +225,42 @@ const main = async () => {
     process.exit(0);
   }
 
-  let projectName = firstArg && !firstArg.startsWith('-') ? firstArg : null;
-  const version = args[1] || 'latest';
+  const forceLocal = firstArg === '--local' || firstArg === '-l';
 
-  if (!projectName) {
-    console.log();
-    log(`  ╭${'─'.repeat(62)}╮`);
-    log(`  │  ${COLORS.bold}Simpl Installer${COLORS.reset}${' '.repeat(45)}│`);
-    log(`  ╰${'─'.repeat(62)}╯`);
-    console.log();
+  console.log();
+  log(`  ╭${'─'.repeat(62)}╮`);
+  log(`  │  ${COLORS.bold}Simpl Installer${COLORS.reset}${' '.repeat(45)}│`);
+  log(`  ╰${'─'.repeat(62)}╯`);
+  console.log();
 
-    while (true) {
-      projectName = await promptUser('  Project name: ');
-      const error = validateProjectName(projectName);
-      if (error) {
-        log(`  ${COLORS.red}✗${COLORS.reset} ${error}`, 'red');
-        console.log();
-        continue;
-      }
-      break;
-    }
-  } else {
+  let version, projectName, appUrl;
+  const {latest} = await getAvailableVersions();
+
+  while (true) {
+    version = await promptUser('  Simpl version', latest);
+    if (version) break;
+  }
+
+  while (true) {
+    projectName = await promptUser('  Project name');
     const error = validateProjectName(projectName);
     if (error) {
-      console.log();
       log(`  ${COLORS.red}✗${COLORS.reset} ${error}`, 'red');
       console.log();
-      process.exit(1);
+      continue;
     }
+    break;
+  }
+
+  while (true) {
+    const input = await promptUser('  App URL', 'http://simpl.local');
+    const result = validateUrl(input);
+    if (typeof result === 'string' && result.startsWith('http')) {
+      appUrl = result;
+      break;
+    }
+    log(`  ${COLORS.red}✗${COLORS.reset} ${result}`, 'red');
+    console.log();
   }
 
   console.log();
@@ -238,10 +271,18 @@ const main = async () => {
   log('  📦 Downloading files...', 'bold');
 
   try {
-    const fileCount = await downloadFramework(projectName, version);
+    const fileCount = await downloadFramework(projectName, version, forceLocal);
 
     console.log();
     log(`  ${COLORS.green}✓${COLORS.reset} Downloaded ${COLORS.bold}${fileCount}${COLORS.reset} file${fileCount !== 1 ? 's' : ''}`);
+
+    console.log();
+    log('  🔧 Configuring project...', 'bold');
+    const targetDir = path.join(process.cwd(), projectName);
+    replaceUrlInDirectory(targetDir, appUrl);
+
+    console.log();
+    log(`  ${COLORS.green}✓${COLORS.reset} Configured app URL to ${COLORS.cyan}${appUrl}${COLORS.reset}`);
     console.log();
     log('  ' + '─'.repeat(16), 'gray');
     console.log();
@@ -261,6 +302,7 @@ const main = async () => {
     console.log();
     log(`  ${COLORS.red}✗${COLORS.reset} Installation failed`, 'red');
     if (error.message === 'CDN server is currently unreachable') log(`  ${COLORS.dim}The CDN server is currently unavailable. Please try again later.${COLORS.reset}`);
+    else if (error.message.includes('Local release not found')) log(`  ${COLORS.dim}${error.message}${COLORS.reset}`);
     else log(`  ${COLORS.dim}Please verify the version exists or try again later${COLORS.reset}`);
     console.log();
     process.exit(1);
