@@ -97,15 +97,27 @@ const listVersions = async () => {
   log('  📦 Fetching available versions...', 'bold');
 
   try {
-    const {versions, latest} = JSON.parse(await fetchUrl(`${CDN_BASE}/versions.json`));
+    const {versions} = JSON.parse(await fetchUrl(`${CDN_BASE}/versions.json`));
     console.log();
 
-    if (versions.length === 0) {
+    const versionList = Object.keys(versions);
+    if (versionList.length === 0) {
       log(`  ${COLORS.yellow}⚠${COLORS.reset} No versions available`);
     } else {
-      versions.forEach(v => {
-        if (v === latest) log(`  ${COLORS.cyan}•${COLORS.reset} ${COLORS.bold}${v}${COLORS.reset} ${COLORS.green}(latest)${COLORS.reset}`);
-        else log(`  ${COLORS.cyan}•${COLORS.reset} ${COLORS.dim}${v}${COLORS.reset}`);
+      versionList.forEach(v => {
+        const meta = versions[v];
+        const isLatest = meta['is-latest'] === true;
+        const isCompatible = meta['script-compatible'] !== false;
+        const isPreRelease = meta['is-pre-release'] === true;
+        let line = `  ${COLORS.cyan}•${COLORS.reset} `;
+
+        if (isLatest) line += `${COLORS.bold}${v}${COLORS.reset} ${COLORS.green}(latest)${COLORS.reset}`;
+        else line += `${COLORS.dim}${v}${COLORS.reset}`;
+
+        if (isPreRelease) line += ` ${COLORS.yellow}(pre-release)${COLORS.reset}`;
+        if (!isCompatible) line += ` ${COLORS.red}(manual download required)${COLORS.reset}`;
+
+        log(line);
       });
     }
   } catch (error) {
@@ -203,12 +215,17 @@ const downloadFramework = async (projectName, version, forceLocal) => {
   return countFiles(targetDir);
 };
 
-const getAvailableVersions = async () => {
+const getVersionsData = async () => {
   try {
     return JSON.parse(await fetchUrl(`${CDN_BASE}/versions.json`));
   } catch {
-    return {versions: [], latest: 'latest'};
+    return {versions: {}};
   }
+};
+
+const getLatestVersion = (versions) => {
+  const latest = Object.keys(versions).find(v => versions[v]['is-latest'] === true);
+  return latest || Object.keys(versions)[0] || 'latest';
 };
 
 const main = async () => {
@@ -234,11 +251,30 @@ const main = async () => {
   console.log();
 
   let version, projectName, appUrl;
-  const {latest} = await getAvailableVersions();
+  const {versions} = await getVersionsData();
+  const latest = getLatestVersion(versions);
 
   while (true) {
     version = await promptUser('  Simpl version', latest);
     if (version) break;
+  }
+
+  const versionMeta = versions[version];
+  if (!versionMeta) {
+    console.log();
+    log(`  ${COLORS.red}✗${COLORS.reset} Version ${COLORS.bold}${version}${COLORS.reset} not found`, 'red');
+    console.log();
+    process.exit(1);
+  }
+
+  if (versionMeta['script-compatible'] === false) {
+    console.log();
+    log(`  ${COLORS.red}✗${COLORS.reset} Version ${COLORS.bold}${version}${COLORS.reset} is not compatible with this installer`, 'red');
+    console.log();
+    log(`  ${COLORS.bold}Manual download required:${COLORS.reset}`, 'blue');
+    log(`    ${COLORS.cyan}${CDN_BASE}/${version}/src.zip${COLORS.reset}`);
+    console.log();
+    process.exit(1);
   }
 
   while (true) {
@@ -293,7 +329,7 @@ const main = async () => {
     log(`    ${COLORS.dim}4.${COLORS.reset} Start developing with ${COLORS.dim}npm run dev${COLORS.reset}`);
     console.log();
     log(`  ${COLORS.bold}Install add-ons:${COLORS.reset}`, 'blue');
-    log(`    ${COLORS.dim}npx @ijuantm/simpl-addon <name>${COLORS.reset}`);
+    log(`    ${COLORS.dim}npx @ijuantm/simpl-addon <n>${COLORS.reset}`);
     log(`    ${COLORS.dim}npx @ijuantm/simpl-addon --list, -lv${COLORS.reset}    List available add-ons`);
     console.log();
     log(`  ${COLORS.green}✓${COLORS.reset} ${COLORS.bold}${COLORS.green}Installation complete!${COLORS.reset}`, 'green');
