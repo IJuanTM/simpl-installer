@@ -197,7 +197,7 @@ const downloadFramework = async (projectName, version, forceLocal) => {
   const targetDir = path.join(process.cwd(), projectName);
   const localZipPath = path.join(LOCAL_RELEASES_DIR, version, 'src.zip');
 
-  if (forceLocal || fs.existsSync(localZipPath)) {
+  if (forceLocal) {
     if (!fs.existsSync(localZipPath)) throw new Error(`Local release not found: ${localZipPath}`);
     console.log();
     log(`  💻 Using local release files`, 'bold');
