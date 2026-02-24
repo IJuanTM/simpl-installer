@@ -256,25 +256,23 @@ const main = async () => {
 
   while (true) {
     version = await promptUser('  Simpl version', latest);
-    if (version) break;
-  }
 
-  const versionMeta = versions[version];
-  if (!versionMeta) {
-    console.log();
-    log(`  ${COLORS.red}✗${COLORS.reset} Version ${COLORS.bold}${version}${COLORS.reset} not found`, 'red');
-    console.log();
-    process.exit(1);
-  }
+    const versionMeta = versions[version];
 
-  if (versionMeta['script-compatible'] === false) {
-    console.log();
-    log(`  ${COLORS.red}✗${COLORS.reset} Version ${COLORS.bold}${version}${COLORS.reset} is not compatible with this installer`, 'red');
-    console.log();
-    log(`  ${COLORS.bold}Manual download required:${COLORS.reset}`, 'blue');
-    log(`    ${COLORS.cyan}${CDN_BASE}/${version}/src.zip${COLORS.reset}`);
-    console.log();
-    process.exit(1);
+    if (!versionMeta) {
+      log(`  ${COLORS.red}✗${COLORS.reset} Version ${COLORS.bold}${version}${COLORS.reset} not found`, 'red');
+      console.log();
+      continue;
+    }
+
+    if (versionMeta['script-compatible'] === false) {
+      log(`  ${COLORS.red}✗${COLORS.reset} Version ${COLORS.bold}${version}${COLORS.reset} is not compatible with this installer`, 'red');
+      log(`  ${COLORS.dim}Manual download: ${CDN_BASE}/${version}/src.zip${COLORS.reset}`);
+      console.log();
+      continue;
+    }
+
+    break;
   }
 
   while (true) {
@@ -289,7 +287,7 @@ const main = async () => {
   }
 
   while (true) {
-    const input = await promptUser('  App URL', 'http://simpl.local');
+    const input = await promptUser('  App URL', `http://${projectName.toLowerCase().replace(/[\s_]+/g, '-')}.local`);
     const result = validateUrl(input);
     if (typeof result === 'string' && result.startsWith('http')) {
       appUrl = result;
