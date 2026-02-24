@@ -139,17 +139,22 @@ const validateProjectName = (name) => {
 
 const validateUrl = (url) => {
   if (!url || url.length === 0) return 'URL cannot be empty';
+
   const trimmed = url.trim().replace(/\/+$/, '');
+
   if (!/^https?:\/\/.+/.test(trimmed)) return 'URL must start with http:// or https://';
+
   return trimmed;
 };
 
 const countFiles = (dir) => {
   let count = 0;
+
   fs.readdirSync(dir, {withFileTypes: true}).forEach(entry => {
     if (entry.isDirectory()) count += countFiles(path.join(dir, entry.name));
     else count++;
   });
+
   return count;
 };
 
@@ -186,7 +191,9 @@ const checkServerAvailability = () => new Promise(resolve => {
     res.resume();
     resolve(res.statusCode === 200);
   });
+
   req.on('error', () => resolve(false));
+
   req.on('timeout', () => {
     req.destroy();
     resolve(false);
@@ -199,9 +206,12 @@ const downloadFramework = async (projectName, version, forceLocal) => {
 
   if (forceLocal) {
     if (!fs.existsSync(localZipPath)) throw new Error(`Local release not found: ${localZipPath}`);
+
     console.log();
     log(`  💻 Using local release files`, 'bold');
+
     await extractZip(localZipPath, targetDir);
+
     return countFiles(targetDir);
   }
 
@@ -277,22 +287,27 @@ const main = async () => {
 
   while (true) {
     projectName = await promptUser('  Project name');
+
     const error = validateProjectName(projectName);
+
     if (error) {
       log(`  ${COLORS.red}✗${COLORS.reset} ${error}`, 'red');
       console.log();
       continue;
     }
+
     break;
   }
 
   while (true) {
     const input = await promptUser('  App URL', `http://${projectName.toLowerCase().replace(/[\s_]+/g, '-')}.local`);
     const result = validateUrl(input);
+
     if (typeof result === 'string' && result.startsWith('http')) {
       appUrl = result;
       break;
     }
+
     log(`  ${COLORS.red}✗${COLORS.reset} ${result}`, 'red');
     console.log();
   }
@@ -311,7 +326,7 @@ const main = async () => {
     log(`  ${COLORS.green}✓${COLORS.reset} Downloaded ${COLORS.bold}${fileCount}${COLORS.reset} file${fileCount !== 1 ? 's' : ''}`);
 
     console.log();
-    log('  🔧 Configuring project...', 'bold');
+    log('  🛠️ Configuring project...', 'bold');
     const targetDir = path.join(process.cwd(), projectName);
     replaceUrlInDirectory(targetDir, appUrl);
 
@@ -327,7 +342,7 @@ const main = async () => {
     log(`    ${COLORS.dim}4.${COLORS.reset} Start developing with ${COLORS.dim}npm run dev${COLORS.reset}`);
     console.log();
     log(`  ${COLORS.bold}Install add-ons:${COLORS.reset}`, 'blue');
-    log(`    ${COLORS.dim}npx @ijuantm/simpl-addon <n>${COLORS.reset}`);
+    log(`    ${COLORS.dim}npx @ijuantm/simpl-addon <add-on>${COLORS.reset}`);
     log(`    ${COLORS.dim}npx @ijuantm/simpl-addon --list, -lv${COLORS.reset}    List available add-ons`);
     console.log();
     log(`  ${COLORS.green}✓${COLORS.reset} ${COLORS.bold}${COLORS.green}Installation complete!${COLORS.reset}`, 'green');
@@ -335,9 +350,11 @@ const main = async () => {
   } catch (error) {
     console.log();
     log(`  ${COLORS.red}✗${COLORS.reset} Installation failed`, 'red');
+
     if (error.message === 'CDN server is currently unreachable') log(`  ${COLORS.dim}The CDN server is currently unavailable. Please try again later.${COLORS.reset}`);
     else if (error.message.includes('Local release not found')) log(`  ${COLORS.dim}${error.message}${COLORS.reset}`);
     else log(`  ${COLORS.dim}Please verify the version exists or try again later${COLORS.reset}`);
+
     console.log();
     process.exit(1);
   }
