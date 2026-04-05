@@ -180,10 +180,14 @@ const listVersions = async () => {
   console.log();
 };
 
+const projectNameToUrlSlug = (name = '') => name.trim().toLowerCase().replace(/[\s_]+/g, '-');
+
 const validateProjectName = (name) => {
-  if (!name || name.length === 0) return 'Project name cannot be empty';
-  if (!/^[a-zA-Z0-9_-]+$/.test(name)) return 'Project name can only contain letters, numbers, hyphens, and underscores';
-  if (fs.existsSync(name)) return `Directory "${name}" already exists`;
+  if (!name || name.trim().length === 0) return 'Project name cannot be empty';
+  if (!/^[a-zA-Z0-9 _-]+$/.test(name)) return 'Project name can only contain letters, numbers, spaces, hyphens, and underscores';
+
+  const folderName = projectNameToUrlSlug(name);
+  if (fs.existsSync(folderName)) return `Directory "${folderName}" already exists`;
 
   return null;
 };
@@ -204,8 +208,6 @@ const getDefaultAppUrl = (url) => {
   const normalized = validateUrl(url);
   return typeof normalized === 'string' && normalized.startsWith('http') ? normalized : DEFAULT_APP_URL;
 };
-
-const projectNameToUrlSlug = (name = '') => name.trim().toLowerCase().replace(/\s+/g, '-');
 
 const getProjectBasedAppUrlDefault = (projectName) => {
   const slug = projectNameToUrlSlug(projectName);
@@ -281,8 +283,8 @@ const checkServerAvailability = () => new Promise(resolve => {
   });
 });
 
-const downloadFramework = async (projectName, version, forceLocal) => {
-  const targetDir = path.join(process.cwd(), projectName);
+const downloadFramework = async (projectFolderName, version, forceLocal) => {
+  const targetDir = path.join(process.cwd(), projectFolderName);
   const localZipPath = path.join(LOCAL_RELEASES_DIR, version, 'src.zip');
 
   if (forceLocal || fs.existsSync(localZipPath)) {
@@ -389,6 +391,7 @@ const main = async () => {
     break;
   }
 
+  const projectFolderName = projectNameToUrlSlug(projectName);
   const appUrlDefault = appUrlArg ? getDefaultAppUrl(appUrlArg) : getProjectBasedAppUrlDefault(projectName);
 
   while (true) {
@@ -412,14 +415,14 @@ const main = async () => {
   log('  📦 Downloading files...', 'bold');
 
   try {
-    const fileCount = await downloadFramework(projectName, version, forceLocal);
+    const fileCount = await downloadFramework(projectFolderName, version, forceLocal);
 
     console.log();
     log(`  ${COLORS.green}✓${COLORS.reset} Downloaded ${COLORS.bold}${fileCount}${COLORS.reset} file${fileCount !== 1 ? 's' : ''}`);
     console.log();
     log('  🔧 Configuring project...', 'bold');
 
-    const targetDir = path.join(process.cwd(), projectName);
+    const targetDir = path.join(process.cwd(), projectFolderName);
     replaceInDirectory(targetDir, {
       '@app-name': projectName,
       '@app-url': appUrl,
@@ -432,7 +435,7 @@ const main = async () => {
     log('  ' + '─'.repeat(16), 'gray');
     console.log();
     log(`  ${COLORS.bold}Getting started:${COLORS.reset}`, 'blue');
-    log(`    ${COLORS.dim}1.${COLORS.reset} Navigate to the project directory with ${COLORS.dim}cd ${projectName}${COLORS.reset}`);
+    log(`    ${COLORS.dim}1.${COLORS.reset} Navigate to the project directory with ${COLORS.dim}cd ${projectFolderName}${COLORS.reset}`);
     log(`    ${COLORS.dim}2.${COLORS.reset} Install dependencies with ${COLORS.dim}composer install && npm install${COLORS.reset}`);
     log(`    ${COLORS.dim}3.${COLORS.reset} Set up a virtual host pointing to the ${COLORS.dim}public${COLORS.reset} directory`);
     log(`    ${COLORS.dim}4.${COLORS.reset} Start developing with ${COLORS.dim}npm run dev${COLORS.reset}`);
