@@ -14,7 +14,7 @@ const COLORS = {
   reset: '\x1b[0m', green: '\x1b[32m', yellow: '\x1b[33m', red: '\x1b[31m', cyan: '\x1b[36m', blue: '\x1b[34m', gray: '\x1b[90m', bold: '\x1b[1m', dim: '\x1b[2m'
 };
 
-const CDN_BASE = 'https://cdn.simpl.iwanvanderwal.nl/framework';
+const CDN_BASE = 'https://cdn.simpl.iwanvanderwal.nl/framework/';
 const LOCAL_RELEASES_DIR = process.env.SIMPL_LOCAL_RELEASES || path.join(process.cwd(), 'simpl-local-releases');
 const BANNER_WIDTH = 62;
 const DEFAULT_APP_URL = 'http://simpl.local';
@@ -205,6 +205,13 @@ const getDefaultAppUrl = (url) => {
   return typeof normalized === 'string' && normalized.startsWith('http') ? normalized : DEFAULT_APP_URL;
 };
 
+const projectNameToUrlSlug = (name = '') => name.trim().toLowerCase().replace(/\s+/g, '-');
+
+const getProjectBasedAppUrlDefault = (projectName) => {
+  const slug = projectNameToUrlSlug(projectName);
+  return slug ? `http://${slug}.local` : DEFAULT_APP_URL;
+};
+
 const extractHostFromUrl = (url) => {
   try {
     return new URL(url).host;
@@ -343,7 +350,6 @@ const main = async () => {
   const {versions} = await getVersionsData();
   const latest = getLatestVersion(versions);
   const projectNameDefault = getDefaultProjectName(projectNameArg);
-  const appUrlDefault = getDefaultAppUrl(appUrlArg);
 
   while (true) {
     version = await promptUser('  Simpl version', latest);
@@ -382,6 +388,8 @@ const main = async () => {
 
     break;
   }
+
+  const appUrlDefault = appUrlArg ? getDefaultAppUrl(appUrlArg) : getProjectBasedAppUrlDefault(projectName);
 
   while (true) {
     const input = await promptUser('  App URL', appUrlDefault);
