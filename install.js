@@ -205,6 +205,14 @@ const getDefaultAppUrl = (url) => {
   return typeof normalized === 'string' && normalized.startsWith('http') ? normalized : DEFAULT_APP_URL;
 };
 
+const extractHostFromUrl = (url) => {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  }
+};
+
 const countFiles = (dir) => {
   let count = 0;
 
@@ -406,7 +414,8 @@ const main = async () => {
     const targetDir = path.join(process.cwd(), projectName);
     replaceInDirectory(targetDir, {
       '@app-name': projectName,
-      '@app-url': appUrl
+      '@app-url': appUrl,
+      '@app-host': extractHostFromUrl(appUrl)
     });
 
     console.log();
