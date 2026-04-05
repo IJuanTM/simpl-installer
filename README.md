@@ -2,6 +2,8 @@
 
 CLI tool for installing the Simpl PHP framework automatically using npx.
 
+The installer is interactive: it prompts for a Simpl version, project name, and app URL. You can also provide the project name and app URL up front as optional positional arguments.
+
 ## Usage
 
 ### Install the Framework
@@ -12,22 +14,41 @@ Create a new Simpl project by running the following command, change `my-project`
 npx @ijuantm/simpl-install my-project
 ```
 
-Or run without a project name to be prompted for one:
+Or run without arguments to be prompted for everything:
 
 ```bash
 npx @ijuantm/simpl-install
 ```
 
+You can also provide an app URL:
+
+```bash
+npx @ijuantm/simpl-install my-project https://example.com
+```
+
 The installer will:
 
-1. Download the latest framework version
-2. Create a new project directory
-3. Set up all necessary files and folders
+1. Fetch the available Simpl versions
+2. Prompt for the version, project name, and app URL
+3. Download and extract the selected framework release
+4. Set up all necessary files and folders
 
 ### Get Help
 
 ```bash
 npx @ijuantm/simpl-install --help
+```
+
+To list available versions:
+
+```bash
+npx @ijuantm/simpl-install --list-versions
+```
+
+To force local release files when available:
+
+```bash
+npx @ijuantm/simpl-install --local
 ```
 
 ## Post-Installation Steps
@@ -52,7 +73,7 @@ npx @ijuantm/simpl-addon auth
 See available add-ons:
 
 ```bash
-npx @ijuantm/simpl-addon --list
+npx @ijuantm/simpl-addon --list, -lv
 ```
 
 ## Requirements
