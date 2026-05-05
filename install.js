@@ -158,6 +158,21 @@ const printVersionList = (versions) => {
   }
 };
 
+const getLatestVersion = (versions) => {
+  const latestEntry = Object.entries(versions).find(([, meta]) => meta['is-latest'] === true);
+  return latestEntry?.[0] || Object.keys(versions)[0] || null;
+};
+
+const resolveVersionInput = (versions, input) => {
+  const value = String(input || '').trim();
+  if (!value) return {valid: false};
+  if (value.toLowerCase() === 'latest') {
+    const latest = getLatestVersion(versions);
+    return latest ? {valid: true, version: latest, display: latest, alias: 'latest'} : {valid: false};
+  }
+  return versions[value] ? {valid: true, version: value, display: value} : {valid: false};
+};
+
 const showVersionList = (versions) => {
   line();
   out(PAD + styled('Available versions:', C.bold), C.blue);
@@ -176,17 +191,23 @@ const confirmSuggestion = async (suggestion) => {
 
 const resolveVersion = async (versions, preset = null) => {
   const versionList = Object.keys(versions);
+  const suggestionOptions = [...versionList, 'latest'];
 
   const handleInvalid = async (input) => {
     line();
     error(`Version ${styled(input, C.bold)} not found`);
-    const suggestion = closestMatch(input, versionList);
+    const suggestion = closestMatch(input, suggestionOptions);
     if (suggestion) {
       line();
       if (await confirmSuggestion(suggestion)) {
+        const resolvedSuggestion = resolveVersionInput(versions, suggestion);
+        if (!resolvedSuggestion.valid) {
+          showVersionList(versions);
+          return null;
+        }
         line();
-        printAnswer(PAD + 'Simpl version', suggestion);
-        return suggestion;
+        printAnswer(PAD + 'Simpl version', resolvedSuggestion.display);
+        return resolvedSuggestion.version;
       }
     }
     showVersionList(versions);
@@ -194,10 +215,11 @@ const resolveVersion = async (versions, preset = null) => {
   };
 
   if (preset) {
-    if (versions[preset]) {
+    const resolvedPreset = resolveVersionInput(versions, preset);
+    if (resolvedPreset.valid) {
       line();
-      printAnswer(PAD + 'Simpl version', preset);
-      return preset;
+      printAnswer(PAD + 'Simpl version', resolvedPreset.display);
+      return resolvedPreset.version;
     }
     const resolved = await handleInvalid(preset);
     if (resolved) return resolved;
@@ -210,7 +232,8 @@ const resolveVersion = async (versions, preset = null) => {
       warn('Version cannot be empty');
       continue;
     }
-    if (versions[input]) return input;
+    const resolvedInput = resolveVersionInput(versions, input);
+    if (resolvedInput.valid) return resolvedInput.version;
     const resolved = await handleInvalid(input);
     if (resolved) return resolved;
   }
@@ -222,21 +245,16 @@ const showHelp = () => {
   out(PAD + styled('Usage:', C.bold), C.blue);
   out(PAD + styled('npx @ijuantm/simpl-install', C.dim));
   out(PAD + styled('npx @ijuantm/simpl-install --name="My Project" --url="http://my-project.local"', C.dim));
+  out(PAD + styled('npx @ijuantm/simpl-install --version=latest --name="Simpl Test"', C.dim));
   out(PAD + styled('npx @ijuantm/simpl-install --list-versions', C.dim));
   out(PAD + styled('npx @ijuantm/simpl-install --help', C.dim));
   line();
   out(PAD + styled('Options:', C.bold), C.blue);
-  out(PAD + styled('--version=<v>, -v=<v>', C.dim) + '   Framework version to install');
-  out(PAD + styled('--name=<name>, -n=<name>', C.dim) + ' Project name');
-  out(PAD + styled('--url=<url>, -u=<url>', C.dim) + '   App URL (must start with http:// or https://)');
-  out(PAD + styled('--local, -l', C.dim) + '             Use local release files when available');
-  out(PAD + styled('--list-versions, -lv', C.dim) + '   List all available versions');
-  out(PAD + styled('--help, -h', C.dim) + '              Show this help message');
-  line();
-  out(PAD + styled('Examples:', C.bold), C.blue);
-  out(PAD + styled('npx @ijuantm/simpl-install', C.dim));
-  out(PAD + styled('npx @ijuantm/simpl-install --name="Simpl Test" --url="http://simpl-test.local"', C.dim));
-  out(PAD + styled('npx @ijuantm/simpl-install --local --version=1.7.0 --name="Simpl Test" --url="http://simpl-test.local"', C.dim));
+  out(PAD + styled('--version=<v>, -v=<v>', C.dim) + '       Framework version to install (use latest for the newest release)');
+  out(PAD + styled('--name=<name>, -n=<name>', C.dim) + '    Project name');
+  out(PAD + styled('--url=<url>, -u=<url>', C.dim) + '       App URL (must start with http:// or https://)');
+  out(PAD + styled('--list-versions, -lv', C.dim) + '        List all available versions');
+  out(PAD + styled('--help, -h', C.dim) + '                  Show this help message');
   line();
 };
 
