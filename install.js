@@ -30,7 +30,7 @@ const prefixed = (symbol, color, msg, bold = false, dim = false) => out(PAD + co
 const success = (msg, bold = false) => prefixed('✓', C.green, msg, bold);
 const error = (msg, bold = false) => prefixed('✕', C.red, msg, bold);
 const warn = (msg, bold = false) => prefixed('⚠', C.yellow, msg, bold);
-const info = (msg) => prefixed('ℹ', C.cyan, msg, false, true);
+const info = (msg) => prefixed('◌', C.cyan, msg, false, true);
 const task = (msg) => out(PAD + msg);
 const item = (msg, dim = false) => out(PAD + C.cyan + '•' + C.reset + ' ' + (dim ? styled(msg, C.dim) : msg));
 
@@ -43,7 +43,6 @@ const box = (title) => {
   out(PAD + '╭' + '─'.repeat(BOX_WIDTH) + '╮');
   out(PAD + '│ ' + styled(displayTitle, C.bold) + spaces + ' │');
   out(PAD + '╰' + '─'.repeat(BOX_WIDTH) + '╯');
-  line();
 };
 
 const divider = () => {
@@ -159,45 +158,67 @@ const printVersionList = (versions) => {
   }
 };
 
-const promptVersion = async (versions) => {
+const showVersionList = (versions) => {
+  line();
+  out(PAD + styled('Available versions:', C.bold), C.blue);
+  printVersionList(versions);
+};
+
+const confirmSuggestion = async (suggestion) => {
+  while (true) {
+    const a = (await promptUser(PAD + `${C.cyan}◌${C.reset} ${C.dim}Did you mean${C.reset} ${C.cyan}${suggestion}${C.reset}${C.dim}?${C.reset} ([Y] Yes / [N] No)`)).toLowerCase();
+    if (a === 'yes' || a === 'y') return true;
+    if (a === 'no' || a === 'n') return false;
+    warn('Please answer [Y] Yes or [N] No)');
+    line();
+  }
+};
+
+const resolveVersion = async (versions, preset = null) => {
   const versionList = Object.keys(versions);
 
-  const askSuggestion = async (input) => {
-    const suggestion = closestMatch(input, versionList);
+  const handleInvalid = async (input) => {
     line();
     error(`Version ${styled(input, C.bold)} not found`);
+    const suggestion = closestMatch(input, versionList);
     if (suggestion) {
-      out(PAD + `Did you mean: ${C.blue}${suggestion}${C.reset}?`);
       line();
-      while (true) {
-        const a = (await promptUser(PAD + `Use "${suggestion}"? ${C.dim}(yes / no)${C.reset}`)).toLowerCase();
-        if (a === 'yes' || a === 'y') return suggestion;
-        if (a === 'no' || a === 'n') break;
-        warn('Please answer yes or no', false);
+      if (await confirmSuggestion(suggestion)) {
+        line();
+        printAnswer(PAD + 'Simpl version', suggestion);
+        return suggestion;
       }
     }
-    line();
-    out(PAD + styled('Available versions:', C.bold), C.blue);
-    printVersionList(versions);
-    line();
+    showVersionList(versions);
     return null;
   };
 
+  if (preset) {
+    if (versions[preset]) {
+      line();
+      printAnswer(PAD + 'Simpl version', preset);
+      return preset;
+    }
+    const resolved = await handleInvalid(preset);
+    if (resolved) return resolved;
+  }
+
   while (true) {
+    line();
     const input = await promptUser(PAD + 'Simpl version');
     if (!input) {
       warn('Version cannot be empty');
-      line();
       continue;
     }
     if (versions[input]) return input;
-    const resolved = await askSuggestion(input);
+    const resolved = await handleInvalid(input);
     if (resolved) return resolved;
   }
 };
 
 const showHelp = () => {
-  box('Simpl Installer');
+  box(`Simpl Installer ${C.dim}-${C.reset} ${C.blue}Help${C.reset}`);
+  line();
   out(PAD + styled('Usage:', C.bold), C.blue);
   out(PAD + styled('npx @ijuantm/simpl-install', C.dim));
   out(PAD + styled('npx @ijuantm/simpl-install --name="My Project" --url="http://my-project.local"', C.dim));
@@ -220,7 +241,8 @@ const showHelp = () => {
 };
 
 const listVersions = async () => {
-  box('Available Versions');
+  box(`Simpl Installer ${C.dim}-${C.reset} ${C.blue}Available Versions${C.reset}`);
+  line();
   task('📦 Fetching available versions...');
   try {
     const {versions} = JSON.parse(await fetchUrl(`${CDN_BASE}/versions.json`));
@@ -304,8 +326,7 @@ const checkServerAvailability = () => new Promise(resolve => {
   https.get(`${CDN_BASE}/versions.json`, {timeout: 5000}, res => {
     res.resume();
     resolve(res.statusCode === 200);
-  })
-    .on('error', () => resolve(false)).on('timeout', () => resolve(false));
+  }).on('error', () => resolve(false)).on('timeout', () => resolve(false));
 });
 
 const getVersionsData = async () => {
@@ -315,8 +336,6 @@ const getVersionsData = async () => {
     return {versions: {}};
   }
 };
-
-const getLatestVersion = (versions) => Object.keys(versions).find(v => versions[v]['is-latest'] === true) || Object.keys(versions)[0] || 'latest';
 
 const downloadFramework = async (projectFolderName, version, forceLocal) => {
   const targetDir = path.join(process.cwd(), projectFolderName);
@@ -359,7 +378,8 @@ const main = async () => {
     const suggestion = closestMatch(flagName, KNOWN_FLAGS);
     line();
     warn(`Unknown option: ${styled(flag, C.bold)}`);
-    if (suggestion) info(`Did you mean ${C.cyan}${suggestion}${C.reset}?`);
+    line();
+    if (suggestion) info(`Did you mean ${C.cyan}${suggestion}${C.reset}${C.dim}?${C.reset}`);
   }
   if (parsed.unknownFlags.length) {
     info('Run with --help to see all available options.');
@@ -367,12 +387,11 @@ const main = async () => {
     process.exit(1);
   }
 
-  box('Simpl Installer');
+  box(`Simpl Installer ${C.dim}-${C.reset} ${C.blue}Install New Project${C.reset}`);
 
   const {versions} = await getVersionsData();
-  const version = await promptVersion(versions);
-  line();
-  printAnswer(PAD + 'Simpl version', version);
+
+  const version = await resolveVersion(versions, parsed.version);
 
   const versionMeta = versions[version];
   if (versionMeta['script-compatible'] === false) {
@@ -436,8 +455,8 @@ const main = async () => {
   }
 
   const projectFolderName = projectNameToUrlSlug(projectName);
-  line();
   box(`Installing: ${C.cyan}${projectName}${C.reset} ${C.dim}(${version})${C.reset}`);
+  line();
   task('📦 Downloading files...');
 
   try {
@@ -445,7 +464,7 @@ const main = async () => {
     line();
     success(`Downloaded ${styled(String(fileCount), C.bold)} file${fileCount !== 1 ? 's' : ''}`);
     line();
-    task('🔧 Configuring project...');
+    task('⚙️ Configuring project...');
 
     const targetDir = path.join(process.cwd(), projectFolderName);
     replaceInDirectory(targetDir, {'@app-name': projectName, '@app-url': appUrl, '@app-host': extractHostFromUrl(appUrl)});
@@ -461,7 +480,7 @@ const main = async () => {
     line();
     out(PAD + styled('Install add-ons:', C.bold), C.blue);
     item(styled('npx @ijuantm/simpl-addon --addon=<name>', C.dim));
-    item(styled('npx @ijuantm/simpl-addon --list', C.dim) + '    List available add-ons');
+    item(styled('npx @ijuantm/simpl-addon --list', C.dim) + '            List available add-ons');
     line();
     success(styled('Installation complete!', C.bold, C.green), true);
     line();
