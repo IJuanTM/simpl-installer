@@ -62,13 +62,24 @@ const cleanupPath = (targetPath) => {
 
 const resolveRedirectUrl = (baseUrl, location) => new URL(location, baseUrl).toString();
 
+const isRedirect = (statusCode) => [301, 302].includes(statusCode);
+const checkStatus = (statusCode, statusMessage, location, url) => {
+  if (isRedirect(statusCode)) {
+    if (!location) throw new Error(`HTTP ${statusCode}: Redirect missing location`);
+    return resolveRedirectUrl(url, location);
+  }
+  if (statusCode !== 200) throw new Error(`HTTP ${statusCode}: ${statusMessage || 'Request failed'}`);
+  return null;
+};
+
 const fetchUrl = (url) => new Promise((resolve, reject) => {
   https.get(url, res => {
-    if (res.statusCode === 301 || res.statusCode === 302) {
-      if (!res.headers.location) return reject(new Error(`HTTP ${res.statusCode}: Redirect missing location`));
-      return fetchUrl(resolveRedirectUrl(url, res.headers.location)).then(resolve).catch(reject);
+    try {
+      const redirect = checkStatus(res.statusCode, res.statusMessage, res.headers.location, url);
+      if (redirect) return fetchUrl(redirect).then(resolve).catch(reject);
+    } catch (err) {
+      return reject(err);
     }
-    if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage || 'Request failed'}`));
     let data = '';
     res.on('data', chunk => data += chunk);
     res.on('end', () => resolve(data));
@@ -86,11 +97,12 @@ const downloadFile = (url, dest) => new Promise((resolve, reject) => {
   };
 
   https.get(url, res => {
-    if (res.statusCode === 301 || res.statusCode === 302) {
-      if (!res.headers.location) return fail(new Error(`HTTP ${res.statusCode}: Redirect missing location`));
-      return downloadFile(resolveRedirectUrl(url, res.headers.location), dest).then(resolve).catch(reject);
+    try {
+      const redirect = checkStatus(res.statusCode, res.statusMessage, res.headers.location, url);
+      if (redirect) return downloadFile(redirect, dest).then(resolve).catch(reject);
+    } catch (err) {
+      return fail(err);
     }
-    if (res.statusCode !== 200) return fail(new Error(`HTTP ${res.statusCode}: ${res.statusMessage || 'Request failed'}`));
     res.pipe(file);
     file.on('finish', () => file.close(err => err ? fail(err) : resolve()));
   }).on('error', fail);
@@ -108,18 +120,22 @@ const promptUser = (question, defaultValue = '') => new Promise(resolve => {
 
 const parseArgs = (args) => {
   const result = {version: null, name: null, url: null, local: false, listVersions: false, help: false, unknownFlags: []};
+  const flagMap = {'--help': 'help', '-h': 'help', '--list-versions': 'listVersions', '-lv': 'listVersions', '--local': 'local', '-l': 'local'};
+  const valueFlags = {'--version=': 'version', '-v=': 'version', '--name=': 'name', '-n=': 'name', '--url=': 'url', '-u=': 'url'};
+
   for (const arg of args) {
-    if (arg === '--help' || arg === '-h') result.help = true;
-    else if (arg === '--list-versions' || arg === '-lv') result.listVersions = true;
-    else if (arg === '--local' || arg === '-l') result.local = true;
-    else if (arg.startsWith('--version=')) result.version = arg.slice(10).trim() || null;
-    else if (arg.startsWith('-v=')) result.version = arg.slice(3).trim() || null;
-    else if (arg.startsWith('--name=')) result.name = arg.slice(7).trim() || null;
-    else if (arg.startsWith('-n=')) result.name = arg.slice(3).trim() || null;
-    else if (arg.startsWith('--url=')) result.url = arg.slice(6).trim() || null;
-    else if (arg.startsWith('-u=')) result.url = arg.slice(3).trim() || null;
-    else if (arg.startsWith('-')) result.unknownFlags.push(arg);
-    else if (!result.name) result.name = arg;
+    if (flagMap[arg]) result[flagMap[arg]] = true;
+    else {
+      let matched = false;
+      for (const [prefix, key] of Object.entries(valueFlags)) {
+        if (arg.startsWith(prefix)) {
+          result[key] = arg.slice(prefix.length).trim() || null;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) arg.startsWith('-') ? result.unknownFlags.push(arg) : !result.name && (result.name = arg);
+    }
   }
   return result;
 };
@@ -147,13 +163,10 @@ const closestMatch = (input, options) => {
 
 const printVersionList = (versions) => {
   for (const [v, meta] of Object.entries(versions)) {
-    const isLatest = meta['is-latest'] === true;
-    const isCompatible = meta['script-compatible'] !== false;
-    const isPreRelease = meta['is-pre-release'] === true;
     let ln = PAD + C.cyan + '•' + C.reset + ' ';
-    ln += isLatest ? styled(v, C.bold) + ' ' + styled('(latest)', C.green) : styled(v, C.dim);
-    if (isPreRelease) ln += ' ' + styled('(pre-release)', C.yellow);
-    if (!isCompatible) ln += ' ' + styled('(manual download required)', C.red);
+    ln += meta['is-latest'] ? styled(v, C.bold) + ' ' + styled('(latest)', C.green) : styled(v, C.dim);
+    ln += meta['is-pre-release'] ? ' ' + styled('(pre-release)', C.yellow) : '';
+    ln += meta['script-compatible'] === false ? ' ' + styled('(manual download required)', C.red) : '';
     out(ln);
   }
 };
@@ -168,7 +181,7 @@ const resolveVersionInput = (versions, input) => {
   if (!value) return {valid: false};
   if (value.toLowerCase() === 'latest') {
     const latest = getLatestVersion(versions);
-    return latest ? {valid: true, version: latest, display: latest, alias: 'latest'} : {valid: false};
+    return latest ? {valid: true, version: latest, display: latest} : {valid: false};
   }
   return versions[value] ? {valid: true, version: value, display: value} : {valid: false};
 };
@@ -180,10 +193,11 @@ const showVersionList = (versions) => {
 };
 
 const confirmSuggestion = async (suggestion) => {
+  line();
   while (true) {
     const a = (await promptUser(PAD + `${C.cyan}◌${C.reset} ${C.dim}Did you mean${C.reset} ${C.cyan}${suggestion}${C.reset}${C.dim}?${C.reset} ([Y] Yes / [N] No)`)).toLowerCase();
-    if (a === 'yes' || a === 'y') return true;
-    if (a === 'no' || a === 'n') return false;
+    if (['y', 'yes'].includes(a)) return true;
+    if (['n', 'no'].includes(a)) return false;
     warn('Please answer [Y] Yes or [N] No)');
     line();
   }
@@ -197,32 +211,29 @@ const resolveVersion = async (versions, preset = null) => {
     line();
     error(`Version ${styled(input, C.bold)} not found`);
     const suggestion = closestMatch(input, suggestionOptions);
-    if (suggestion) {
-      line();
-      if (await confirmSuggestion(suggestion)) {
-        const resolvedSuggestion = resolveVersionInput(versions, suggestion);
-        if (!resolvedSuggestion.valid) {
-          showVersionList(versions);
-          return null;
-        }
-        line();
-        printAnswer(PAD + 'Simpl version', resolvedSuggestion.display);
-        return resolvedSuggestion.version;
+    if (suggestion && await confirmSuggestion(suggestion)) {
+      const resolved = resolveVersionInput(versions, suggestion);
+      if (!resolved.valid) {
+        showVersionList(versions);
+        return null;
       }
+      line();
+      printAnswer(PAD + 'Simpl version', resolved.display);
+      return resolved.version;
     }
     showVersionList(versions);
     return null;
   };
 
   if (preset) {
-    const resolvedPreset = resolveVersionInput(versions, preset);
-    if (resolvedPreset.valid) {
+    const resolved = resolveVersionInput(versions, preset);
+    if (resolved.valid) {
       line();
-      printAnswer(PAD + 'Simpl version', resolvedPreset.display);
-      return resolvedPreset.version;
+      printAnswer(PAD + 'Simpl version', resolved.display);
+      return resolved.version;
     }
-    const resolved = await handleInvalid(preset);
-    if (resolved) return resolved;
+    const result = await handleInvalid(preset);
+    if (result) return result;
   }
 
   while (true) {
@@ -232,10 +243,10 @@ const resolveVersion = async (versions, preset = null) => {
       warn('Version cannot be empty');
       continue;
     }
-    const resolvedInput = resolveVersionInput(versions, input);
-    if (resolvedInput.valid) return resolvedInput.version;
-    const resolved = await handleInvalid(input);
-    if (resolved) return resolved;
+    const resolved = resolveVersionInput(versions, input);
+    if (resolved.valid) return resolved.version;
+    const result = await handleInvalid(input);
+    if (result) return result;
   }
 };
 
@@ -264,9 +275,8 @@ const listVersions = async () => {
   task('📦 Fetching available versions...');
   try {
     const {versions} = JSON.parse(await fetchUrl(`${CDN_BASE}/versions.json`));
-    line();
     if (!Object.keys(versions).length) warn('No versions available');
-    else printVersionList(versions);
+    else showVersionList(versions);
   } catch {
     line();
     error('Failed to fetch versions');
@@ -308,13 +318,10 @@ const countFiles = (dir) => fs.readdirSync(dir, {withFileTypes: true}).reduce((c
 
 const replaceInFile = (filePath, replacements) => {
   let content = fs.readFileSync(filePath, 'utf8');
-  let changed = false;
-  for (const [search, replace] of Object.entries(replacements)) {
-    if (!content.includes(search)) continue;
-    content = content.split(search).join(replace);
-    changed = true;
-  }
-  if (changed) fs.writeFileSync(filePath, content, 'utf8');
+  let modified = content;
+  for (const [search, replace] of Object.entries(replacements))
+    if (modified.includes(search)) modified = modified.split(search).join(replace);
+  if (modified !== content) fs.writeFileSync(filePath, modified, 'utf8');
 };
 
 const replaceInDirectory = (dir, replacements) => {
@@ -359,8 +366,9 @@ const downloadFramework = async (projectFolderName, version, forceLocal) => {
   const targetDir = path.join(process.cwd(), projectFolderName);
   const localZipPath = path.join(LOCAL_RELEASES_DIR, version, 'src.zip');
 
+  if (forceLocal && !fs.existsSync(localZipPath)) throw new Error(`Local release not found: ${localZipPath}`);
+
   if (forceLocal || fs.existsSync(localZipPath)) {
-    if (!fs.existsSync(localZipPath)) throw new Error(`Local release not found: ${localZipPath}`);
     line();
     task('💻 Using local release files');
     await extractZip(localZipPath, targetDir);
@@ -391,28 +399,25 @@ const main = async () => {
     process.exit(0);
   }
 
-  for (const flag of parsed.unknownFlags) {
-    const flagName = flag.includes('=') ? flag.slice(0, flag.indexOf('=')) : flag;
-    const suggestion = closestMatch(flagName, KNOWN_FLAGS);
-    line();
-    warn(`Unknown option: ${styled(flag, C.bold)}`);
-    line();
-    if (suggestion) info(`Did you mean ${C.cyan}${suggestion}${C.reset}${C.dim}?${C.reset}`);
-  }
   if (parsed.unknownFlags.length) {
+    for (const flag of parsed.unknownFlags) {
+      const flagName = flag.includes('=') ? flag.slice(0, flag.indexOf('=')) : flag;
+      line();
+      warn(`Unknown option: ${styled(flag, C.bold)}`);
+      line();
+      const suggestion = closestMatch(flagName, KNOWN_FLAGS);
+      if (suggestion) info(`Did you mean ${C.cyan}${suggestion}${C.reset}${C.dim}?${C.reset}`);
+    }
     info('Run with --help to see all available options.');
     line();
     process.exit(1);
   }
 
   box(`Simpl Installer ${C.dim}-${C.reset} ${C.blue}Install New Project${C.reset}`);
-
   const {versions} = await getVersionsData();
-
   const version = await resolveVersion(versions, parsed.version);
 
-  const versionMeta = versions[version];
-  if (versionMeta['script-compatible'] === false) {
+  if (versions[version]?.['script-compatible'] === false) {
     line();
     error(`Version ${styled(version, C.bold)} is not compatible with this installer`);
     line();
@@ -443,19 +448,16 @@ const main = async () => {
     }
   }
 
-  let appUrl;
   const resolveUrlInteractive = async () => {
     while (true) {
       const result = validateUrl(await promptUser(PAD + 'App URL', getProjectBasedAppUrlDefault(projectName)));
-      if (typeof result === 'string' && result.startsWith('http')) {
-        appUrl = result;
-        return;
-      }
+      if (typeof result === 'string' && result.startsWith('http')) return result;
       error(result);
       line();
     }
   };
 
+  let appUrl;
   if (parsed.url) {
     const result = validateUrl(parsed.url);
     if (typeof result !== 'string' || !result.startsWith('http')) {
@@ -463,13 +465,13 @@ const main = async () => {
       warn(`Invalid URL: ${result}`);
       info('Please enter a valid URL (e.g. http://my-project.local)');
       line();
-      await resolveUrlInteractive();
+      appUrl = await resolveUrlInteractive();
     } else {
       appUrl = result;
       printAnswer(PAD + 'App URL', appUrl);
     }
   } else {
-    await resolveUrlInteractive();
+    appUrl = await resolveUrlInteractive();
   }
 
   const projectFolderName = projectNameToUrlSlug(projectName);
