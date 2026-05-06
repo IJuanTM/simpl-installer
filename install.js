@@ -111,7 +111,8 @@ const downloadFile = (url, dest) => new Promise((resolve, reject) => {
 
 const promptUser = (question, defaultValue = '') => new Promise(resolve => {
   const rl = readline.createInterface({input: process.stdin, output: process.stdout});
-  rl.question(`${question}: `, answer => {
+  const prompt = defaultValue ? `${question} ${C.dim}(${defaultValue})${C.reset}: ` : `${question}: `;
+  rl.question(prompt, answer => {
     rl.close();
     resolve(answer.trim() || defaultValue);
   });
@@ -194,7 +195,7 @@ const showVersionList = (versions) => {
 const confirmSuggestion = async (suggestion) => {
   line();
   while (true) {
-    const a = (await promptUser(PAD + `${C.cyan}◌${C.reset} ${C.dim}Did you mean${C.reset} ${C.cyan}${suggestion}${C.reset}${C.dim}?${C.reset} [y/N]`, 'no')).toLowerCase();
+    const a = (await promptUser(PAD + `${C.cyan}◌${C.reset} ${C.dim}Did you mean${C.reset} ${C.cyan}${suggestion}${C.reset}${C.dim}?${C.reset}`, 'n')).toLowerCase();
     if (['y', 'yes'].includes(a)) return true;
     if (['n', 'no'].includes(a)) return false;
     warn('Please answer [Y] Yes or [N] No)');
