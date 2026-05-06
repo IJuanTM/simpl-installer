@@ -195,7 +195,7 @@ const showVersionList = (versions) => {
 const confirmSuggestion = async (suggestion) => {
   line();
   while (true) {
-    const a = (await promptUser(PAD + `${C.cyan}◌${C.reset} ${C.dim}Did you mean${C.reset} ${C.cyan}${suggestion}${C.reset}${C.dim}?${C.reset} ([Y] Yes / [N] No)`)).toLowerCase();
+    const a = (await promptUser(PAD + `${C.cyan}◌${C.reset} ${C.dim}Did you mean${C.reset} ${C.cyan}${suggestion}${C.reset}${C.dim}? ([Y] Yes /${C.reset} [N] No${C.dim})${C.reset}`, 'n')).toLowerCase();
     if (['y', 'yes'].includes(a)) return true;
     if (['n', 'no'].includes(a)) return false;
     warn('Please answer [Y] Yes or [N] No)');
