@@ -1,83 +1,91 @@
 # Simpl Installer
 
-CLI tool for installing the Simpl PHP framework automatically using npx.
+CLI tool for installing the Simpl PHP framework with `npx`.
 
-The installer is interactive: it prompts for a Simpl version, project name, and app URL. You can also provide the project name and app URL up front as optional positional arguments.
+## What it does
+
+- Downloads the selected Simpl release
+- Creates a new project directory
+- Replaces framework placeholders such as the app name, app URL, and host
+- Prints the next steps after installation
 
 ## Usage
 
-### Install the Framework
-
-Create a new Simpl project by running the following command, change `my-project` to your desired project name:
-
-```bash
-npx @ijuantm/simpl-install my-project
-```
-
-Or run without arguments to be prompted for everything:
+Run the installer with no arguments to be prompted for everything:
 
 ```bash
 npx @ijuantm/simpl-install
 ```
 
-You can also provide an app URL:
+Or provide the project name up front:
 
 ```bash
-npx @ijuantm/simpl-install my-project https://example.com
+npx @ijuantm/simpl-install my-project
 ```
 
-The installer will:
-
-1. Fetch the available Simpl versions
-2. Prompt for the version, project name, and app URL
-3. Download and extract the selected framework release
-4. Set up all necessary files and folders
-
-### Get Help
+You can also pass explicit options:
 
 ```bash
-npx @ijuantm/simpl-install --help
+npx @ijuantm/simpl-install my-project --version=latest --url=https://example.com
 ```
 
-To list available versions:
+The first non-flag argument is treated as the project name. If you do not pass `--name`, the installer will ask for it interactively.
+
+### Available options
+
+| Option                       | Description                                                        |
+|------------------------------|--------------------------------------------------------------------|
+| `--version=<v>`, `-v=<v>`    | Framework version to install. Use `latest` for the newest release. |
+| `--name=<name>`, `-n=<name>` | Project name.                                                      |
+| `--url=<url>`, `-u=<url>`    | App URL. Must start with `http://` or `https://`.                  |
+| `--list-versions`, `-lv`     | List all available versions.                                       |
+| `--help`, `-h`               | Show the help message.                                             |
+
+### Helpful commands
+
+List available versions:
 
 ```bash
 npx @ijuantm/simpl-install --list-versions
 ```
 
-To force local release files when available:
+Show help:
 
 ```bash
-npx @ijuantm/simpl-install --local
+npx @ijuantm/simpl-install --help
 ```
 
-## Post-Installation Steps
-
-After the installation completes, run the following commands:
+## After installation
 
 ```bash
 cd my-project
 composer install && npm install
 ```
 
-For more details, see the README file in the project directory, or in the [documentation](https://simpl.iwanvanderwal.nl/docs).
-
-## Installing Add-ons
-
-Once your framework is installed, you can add functionality with add-ons, for example, to install the "auth" add-on:
+Then point your web server or local host configuration to the `public` directory and start developing with:
 
 ```bash
-npx @ijuantm/simpl-addon auth
+npm run dev
 ```
 
-See available add-ons:
+For more details, see the README in the generated project directory or the [documentation](https://simpl.iwanvanderwal.nl/docs).
+
+## Add-ons
+
+After installing the framework, you can install add-ons with:
 
 ```bash
-npx @ijuantm/simpl-addon --list, -lv
+npx @ijuantm/simpl-addon --addon=<name>
+```
+
+To list available add-ons:
+
+```bash
+npx @ijuantm/simpl-addon --list
 ```
 
 ## Requirements
 
-- **Node.js**: >= 22.x.x
+- **Node.js**: >= 22
 - **PHP**: >= 8.5.x
-- **Composer**: Latest version
+- **Composer**: latest version
