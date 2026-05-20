@@ -394,6 +394,7 @@ const main = async () => {
     showHelp();
     process.exit(0);
   }
+
   if (parsed.listVersions) {
     await listVersions();
     process.exit(0);
