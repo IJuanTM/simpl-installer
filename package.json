@@ -1,7 +1,7 @@
 {
   "name": "@ijuantm/simpl-install",
   "description": "CLI tool to install the Simpl PHP framework.",
-  "version": "2.8.4",
+  "version": "2.8.5",
   "scripts": {
     "link": "npm link",
     "unlink": "npm unlink -g @ijuantm/simpl-install"

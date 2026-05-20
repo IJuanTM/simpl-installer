@@ -253,19 +253,19 @@ const resolveVersion = async (versions, preset = null) => {
 const showHelp = () => {
   box(`Simpl Installer ${C.dim}-${C.reset} ${C.blue}Help${C.reset}`);
   line();
-  out(PAD + styled('Usage:', C.bold), C.blue);
-  out(PAD + styled('npx @ijuantm/simpl-install', C.dim));
-  out(PAD + styled('npx @ijuantm/simpl-install --name="My Project" --url="http://my-project.local"', C.dim));
-  out(PAD + styled('npx @ijuantm/simpl-install --version=latest --name="Simpl Test"', C.dim));
-  out(PAD + styled('npx @ijuantm/simpl-install --list-versions', C.dim));
-  out(PAD + styled('npx @ijuantm/simpl-install --help', C.dim));
-  line();
   out(PAD + styled('Options:', C.bold), C.blue);
   out(PAD + styled('--version=<v>, -v=<v>', C.dim) + '       Framework version to install (use latest for the newest release)');
   out(PAD + styled('--name=<name>, -n=<name>', C.dim) + '    Project name');
   out(PAD + styled('--url=<url>, -u=<url>', C.dim) + '       App URL (must start with http:// or https://)');
   out(PAD + styled('--list-versions, -lv', C.dim) + '        List all available versions');
   out(PAD + styled('--help, -h', C.dim) + '                  Show this help message');
+  line();
+  out(PAD + styled('Usage:', C.bold), C.blue);
+  out(PAD + styled('npx @ijuantm/simpl-install', C.dim));
+  out(PAD + styled('npx @ijuantm/simpl-install --name="My Project" --url="http://my-project.local"', C.dim));
+  out(PAD + styled('npx @ijuantm/simpl-install --version=latest --name="Simpl Test"', C.dim));
+  out(PAD + styled('npx @ijuantm/simpl-install --list-versions', C.dim));
+  out(PAD + styled('npx @ijuantm/simpl-install -h', C.dim));
   line();
 };
 
