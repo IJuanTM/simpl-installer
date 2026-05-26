@@ -120,7 +120,7 @@ const promptUser = (question, defaultValue = '') => new Promise(resolve => {
 
 const parseArgs = (args) => {
   const result = {version: null, name: null, url: null, local: false, listVersions: false, help: false, unknownFlags: []};
-  const flagMap = {'--help': 'help', '-h': 'help', '--list-versions': 'listVersions', '-lv': 'listVersions', '--local': 'local', '-l': 'local'};
+  const flagMap = {'--help': 'help', '-h': 'help', '--list-versions': 'listVersions', '-lv': 'listVersions', '--local': 'local'};
   const valueFlags = {'--version=': 'version', '-v=': 'version', '--name=': 'name', '-n=': 'name', '--url=': 'url', '-u=': 'url'};
 
   for (const arg of args) {
@@ -140,7 +140,7 @@ const parseArgs = (args) => {
   return result;
 };
 
-const KNOWN_FLAGS = ['--version', '-v', '--name', '-n', '--url', '-u', '--local', '-l', '--list-versions', '-lv', '--help', '-h'];
+const KNOWN_FLAGS = ['--version', '-v', '--name', '-n', '--url', '-u', '--local', '--list-versions', '-lv', '--help', '-h'];
 
 const levenshtein = (a, b) => {
   const m = a.length, n = b.length;
@@ -238,11 +238,7 @@ const resolveVersion = async (versions, preset = null) => {
 
   while (true) {
     line();
-    const input = await promptUser(PAD + 'Simpl version');
-    if (!input) {
-      warn('Version cannot be empty');
-      continue;
-    }
+    const input = await promptUser(PAD + 'Simpl version', 'latest');
     const resolved = resolveVersionInput(versions, input);
     if (resolved.valid) return resolved.version;
     const result = await handleInvalid(input);
