@@ -360,7 +360,7 @@ const getVersionsData = async () => {
 
 const downloadFramework = async (projectFolderName, version, forceLocal) => {
   const targetDir = path.join(process.cwd(), projectFolderName);
-  const localZipPath = path.join(LOCAL_RELEASES_DIR, version, 'src.zip');
+  const localZipPath = path.join(LOCAL_RELEASES_DIR, version, 'core.zip');
 
   if (forceLocal && !fs.existsSync(localZipPath)) throw new Error(`Local release not found: ${localZipPath}`);
 
@@ -373,9 +373,9 @@ const downloadFramework = async (projectFolderName, version, forceLocal) => {
 
   if (!await checkServerAvailability()) throw new Error('CDN server is currently unreachable');
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), TEMP_DIR_PREFIX));
-  const tempZip = path.join(tempDir, 'src.zip');
+  const tempZip = path.join(tempDir, 'core.zip');
   try {
-    await downloadFile(`${CDN_BASE}/${version}/src.zip`, tempZip);
+    await downloadFile(`${CDN_BASE}/${version}/core.zip`, tempZip);
     await extractZip(tempZip, targetDir);
   } finally {
     cleanupPath(tempDir);
@@ -419,7 +419,7 @@ const main = async () => {
     error(`Version ${styled(version, C.bold)} is not compatible with this installer`);
     line();
     out(PAD + styled('Manual download required:', C.bold), C.blue);
-    out(PAD + `${C.cyan}${CDN_BASE}/${version}/src.zip${C.reset}`);
+    out(PAD + `${C.cyan}${CDN_BASE}/${version}/core.zip${C.reset}`);
     line();
     process.exit(1);
   }
@@ -491,9 +491,10 @@ const main = async () => {
     divider();
     out(PAD + styled('Getting started:', C.bold), C.blue);
     item(`Navigate to the project directory with ${C.dim}cd ${projectFolderName}${C.reset}`);
-    item(`Install dependencies with ${C.dim}composer install && npm install${C.reset}`);
-    item(`Set up a virtual host pointing to the ${C.dim}public${C.reset} directory`);
-    item(`Start developing with ${C.dim}npm run dev${C.reset}`);
+    item(`Install PHP dependencies with ${C.dim}composer install${C.reset}`);
+    item(`Install JS dependencies with ${C.dim}cd src && npm install${C.reset}`);
+    item(`Set up a virtual host pointing to the ${C.dim}src/public${C.reset} directory`);
+    item(`Start developing with ${C.dim}npm run dev${C.reset} ${C.dim}(from the ${C.reset}src${C.dim} directory)${C.reset}`);
     line();
     out(PAD + styled('Install add-ons:', C.bold), C.blue);
     item(styled('npx @ijuantm/simpl-addon --addon=<name>', C.dim));

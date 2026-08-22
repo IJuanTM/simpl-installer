@@ -59,10 +59,11 @@ npx @ijuantm/simpl-install --help
 
 ```bash
 cd my-project
-composer install && npm install
+composer install
+cd src && npm install
 ```
 
-Then point your web server or local host configuration to the `public` directory and start developing with:
+Then point your web server or local host configuration to the `src/public` directory and start developing with (from the `src` directory):
 
 ```bash
 npm run dev
@@ -86,6 +87,6 @@ npx @ijuantm/simpl-addon --list
 
 ## Requirements
 
-- **Node.js**: >= 22
+- **Node.js**: >= 24
 - **PHP**: >= 8.5.x
 - **Composer**: latest version
