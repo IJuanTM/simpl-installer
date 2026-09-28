@@ -1,4 +1,6 @@
-# Simpl Installer
+# [DEPRECATED] Simpl Installer
+
+> See https://github.com/IJuanTM/simpl-cli
 
 CLI tool for installing the Simpl PHP framework with `npx`.
 
